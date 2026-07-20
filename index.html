@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#3a6b35" />
   <title>Green Table — Vegetarian Recipes</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -10,8 +11,24 @@
     :root {
       --green: #3a6b35; --green-light: #eafbe7; --green-dark: #2e5529;
       --bg: #f7f5f0; --card: #fff; --text: #2d2d2d; --muted: #666; --border: #e5e5e5;
+      --r-sm: 10px; --r-md: 14px; --r-lg: 20px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,.14), 0 4px 8px rgba(0,0,0,.06);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+      -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+    }
+    button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
+    button:active { transform: scale(.97); }
+    :focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
 
     /* ---- AUTH ---- */
     #view-auth {
@@ -44,9 +61,10 @@
 
     /* ---- NAVBAR ---- */
     #navbar {
-      background: var(--green); color: white; padding: 0 24px; height: 60px;
+      background: rgba(58,107,53,.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      color: white; padding: 0 24px; height: 60px;
       display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 0 rgba(0,0,0,.08);
     }
     .nav-brand { font-size: 1.15rem; font-weight: 800; }
     .nav-links { display: flex; gap: 4px; }
@@ -83,10 +101,12 @@
     /* ---- RECIPE GRID ---- */
     .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
     .recipe-card {
-      background: white; border-radius: 16px; overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      background: white; border-radius: var(--r-md); overflow: hidden;
+      box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,.04);
+      cursor: pointer; transition: transform 0.18s ease, box-shadow 0.18s ease;
     }
-    .recipe-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .recipe-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .recipe-card:active { transform: scale(.985); }
     .card-hero { height: 155px; display: flex; align-items: center; justify-content: center; font-size: 4rem; }
     .card-body { padding: 16px; }
     .card-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 5px; }
@@ -191,7 +211,7 @@
     .modal-footer-actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
     /* ---- BUTTONS ---- */
-    .btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.87rem; font-weight: 600; transition: all 0.15s; }
+    .btn { padding: 10px 18px; border-radius: var(--r-sm); border: none; cursor: pointer; font-size: 0.87rem; font-weight: 600; transition: all 0.15s; min-height: 42px; }
     .btn-green { background: var(--green); color: white; }
     .btn-green:hover { background: var(--green-dark); }
     .btn-outline { background: white; color: var(--muted); border: 1.5px solid var(--border); }
@@ -273,11 +293,99 @@
     #toast.show { transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 600px) {
-      #shopping-panel { width: 100%; }
-      .modal-body { padding: 20px; }
+      /* layout */
+      .main { padding: 20px 16px calc(84px + var(--safe-bottom)); }
       .nav-links { display: none; }
-      .modal-footer { flex-direction: column; }
+      #navbar { padding: 0 16px; }
+
+      /* recipe grid: single column, bigger cards */
+      .recipe-grid { grid-template-columns: 1fr; gap: 14px; }
+      .card-hero { height: 130px; font-size: 3.4rem; }
+
+      /* modal becomes a bottom sheet */
+      #modal-overlay { padding: 0; align-items: flex-end; }
+      #modal-box {
+        border-radius: 20px 20px 0 0; max-width: none; margin: 0;
+        margin-top: 48px; animation: sheetUp .28s ease;
+      }
+      .modal-hero { height: 120px; font-size: 3.4rem; }
+      .modal-body { padding: 20px 18px; }
+      .modal-footer { flex-direction: column; padding: 14px 18px calc(14px + var(--safe-bottom)); }
+      .modal-footer .btn, .modal-footer-actions { width: 100%; }
+      .modal-footer-actions .btn { flex: 1; }
+
+      /* shopping panel full width */
+      #shopping-panel { width: 100%; }
+      .panel-footer { padding-bottom: calc(14px + var(--safe-bottom)); }
+
+      /* bigger tap targets */
+      .filter-btn { padding: 9px 18px; font-size: 0.88rem; }
+      .list-btn { padding: 9px 14px; font-size: 0.82rem; }
+      .serving-btn { width: 40px; height: 40px; }
+      .week-nav-btn { padding: 10px 18px; }
+      .panel-srv-btn { width: 30px; height: 30px; }
+      .p-cb { width: 22px; height: 22px; }
+      .panel-ing-row { padding: 12px 0; }
+
+      /* prevent iOS zoom on focus */
+      input, textarea, select { font-size: 16px !important; }
+
+      /* toast above bottom nav */
+      #toast { bottom: calc(84px + var(--safe-bottom)); max-width: calc(100vw - 32px); white-space: normal; text-align: center; }
+
+      /* meal plan: one day per row, slots side by side feel */
+      .meal-plan-grid { grid-template-columns: 1fr !important; gap: 12px; }
+      .day-col { padding: 14px; }
+      .day-label { font-size: 0.85rem; text-align: left; display: inline; }
+      .day-date { font-size: 0.78rem; text-align: left; display: inline; margin-left: 6px; }
+      .day-head-row { display: flex; align-items: baseline; gap: 6px; margin-bottom: 10px; }
+      .slot-label { font-size: 0.7rem; }
+      .plan-recipe-chip { padding: 10px 12px; font-size: 0.85rem; border-radius: 10px; }
+      .plan-recipe-chip .pc-name { font-size: 0.85rem; }
+      .plan-recipe-chip .pc-kcal { font-size: 0.72rem; }
+      .plan-recipe-chip .pc-remove { font-size: 0.9rem; top: 8px; right: 8px; padding: 4px; }
+      .add-to-slot { padding: 10px 12px; font-size: 0.85rem; border-radius: 10px; }
+      .dn-lbl { font-size: 0.7rem; width: 28px; }
+      .dn-val { font-size: 0.7rem; width: 32px; }
+      .dn-bar-wrap { height: 7px; }
+
+      /* picker as bottom sheet */
+      .plan-recipe-picker { align-items: flex-end; }
+      .picker-box { max-width: none; width: 100%; border-radius: 20px 20px 0 0; max-height: 75vh; padding-bottom: calc(20px + var(--safe-bottom)); animation: sheetUp .28s ease; }
+
+      /* targets modal comfortable */
+      .targets-box { border-radius: 20px 20px 0 0; max-width: none; width: 100%; padding-bottom: calc(24px + var(--safe-bottom)); }
+      .targets-overlay { align-items: flex-end; }
     }
+
+    @keyframes sheetUp { from { transform: translateY(40px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
+
+    /* ---- MOBILE BOTTOM TAB BAR ---- */
+    #bottom-nav {
+      display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+      background: rgba(255,255,255,.96); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(0,0,0,.07);
+      padding: 6px 8px calc(6px + var(--safe-bottom));
+      grid-template-columns: repeat(4, 1fr);
+    }
+    body.dark #bottom-nav { background: rgba(30,30,30,.96); border-top-color: rgba(255,255,255,.08); }
+    .bn-item {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      background: none; border: none; cursor: pointer; padding: 6px 4px;
+      border-radius: 12px; color: #999; font-size: 0.66rem; font-weight: 600;
+      min-height: 52px; justify-content: center; position: relative; transition: color .15s;
+    }
+    .bn-item .bn-icon { font-size: 1.35rem; line-height: 1; }
+    .bn-item.active { color: var(--green); }
+    body.dark .bn-item.active { color: #4caf50; }
+    .bn-badge {
+      position: absolute; top: 2px; right: calc(50% - 22px);
+      background: #e53935; color: white; font-size: 0.6rem; font-weight: 800;
+      min-width: 16px; height: 16px; border-radius: 8px;
+      display: none; align-items: center; justify-content: center; padding: 0 4px;
+    }
+    .bn-badge.show { display: flex; }
+    @media (max-width: 600px) { #bottom-nav { display: grid; } }
   
     /* ---- Extended Nutrient Cards ---- */
     .nutrients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 24px; }
@@ -442,8 +550,9 @@
     .meal-plan-grid { display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;align-items:start; }
     .day-col { background:white;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:0; }
     .day-col.today { border:2px solid var(--green); }
-    .day-label { font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--green);text-align:center; }
-    .day-date { font-size:0.7rem;color:#aaa;text-align:center;margin-bottom:8px; }
+    .day-head-row { display:flex;align-items:baseline;gap:5px;margin-bottom:8px;flex-wrap:wrap; }
+    .day-label { font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--green); }
+    .day-date { font-size:0.7rem;color:#aaa; }
     .slot-group { margin-bottom:6px; }
     .slot-label { font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#bbb;margin-bottom:3px;padding:0 2px; }
     .slot-label.breakfast { color:#f57c00; }
@@ -530,6 +639,17 @@
       .nav-actions .dark-btn, .nav-actions .signout-btn { display:none; }
     }
 
+    body.dark .day-col,body.dark .weekly-chart-wrap,body.dark .picker-box,body.dark .targets-box,body.dark .mobile-menu-drawer,body.dark .fav-card,body.dark .meal-log-card,body.dark .week-nutrition,body.dark .plan-weekly-summary { background:#1e1e1e; }
+    body.dark .plan-recipe-chip { background:#2a2a2a; }
+    body.dark .day-nutrition,body.dark .balance-score { border-top-color:#333; }
+    body.dark .dn-bar-wrap { background:#333; }
+    body.dark .mobile-nav-link { color:#e0e0e0; }
+    body.dark .mobile-nav-link:hover,body.dark .mobile-nav-link.active { background:#1a2e1a;color:#4caf50; }
+    body.dark .mobile-dark-btn { background:#2a2a2a;color:#e0e0e0; }
+    body.dark .mobile-nav-divider { background:#333; }
+    body.dark .rv-chip,body.dark .week-nav-btn,body.dark .add-to-slot { background:#1e1e1e;border-color:#333;color:#aaa; }
+    body.dark .picker-recipe:hover { background:#2a2a2a; }
+    body.dark .plan-summary-cell,body.dark .wn-cell,body.dark .related-chip { background:#2a2a2a; }
   </style>
 </head>
 <body>
@@ -619,6 +739,23 @@
       </div>
     </div>
   </div>
+
+  <!-- MOBILE BOTTOM TAB BAR -->
+  <nav id="bottom-nav">
+    <button class="bn-item active" id="bn-recipes" onclick="showAppView('home')">
+      <span class="bn-icon">🍽</span>Recipes
+    </button>
+    <button class="bn-item" id="bn-mealplan" onclick="showAppView('mealplan')">
+      <span class="bn-icon">🗓</span>Plan
+    </button>
+    <button class="bn-item" id="bn-basket" onclick="toggleShoppingPanel()">
+      <span class="bn-icon">🛒</span>Basket
+      <span class="bn-badge" id="bn-badge"></span>
+    </button>
+    <button class="bn-item" id="bn-profile" onclick="showAppView('profile')">
+      <span class="bn-icon">👤</span>Profile
+    </button>
+  </nav>
 
   <!-- HOME -->
   <div id="view-home" class="app-view active">
@@ -1109,10 +1246,15 @@ document.addEventListener('keydown', e => {
 function showAppView(view) {
   document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(l => l.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   const navMap = {home:'nav-recipes', profile:'nav-profile', mealplan:'nav-mealplan'};
   const navEl = document.getElementById(navMap[view] || 'nav-recipes');
   if (navEl) navEl.classList.add('active');
+  const bnMap = {home:'bn-recipes', profile:'bn-profile', mealplan:'bn-mealplan'};
+  const bnEl = document.getElementById(bnMap[view] || 'bn-recipes');
+  if (bnEl) bnEl.classList.add('active');
+  window.scrollTo({top: 0});
   if (view === 'profile') loadProfile();
   if (view === 'mealplan') renderMealPlanView();
 }
@@ -1354,6 +1496,11 @@ async function loadShoppingList() {
 function updateCartBadge() {
   const b = document.getElementById('cart-badge');
   b.textContent = shoppingItems.length > 0 ? `(${shoppingItems.length})` : '';
+  const bn = document.getElementById('bn-badge');
+  if (bn) {
+    bn.textContent = shoppingItems.length;
+    bn.classList.toggle('show', shoppingItems.length > 0);
+  }
 }
 
 async function quickToggleList(recipeId) {
@@ -1911,8 +2058,7 @@ function renderMealPlanView() {
       ? '<div class="day-alert">⚠️ Only 1 meal planned</div>' : '';
 
     return `<div class="day-col${isToday ? ' today' : ''}">
-      <div class="day-label">${days[i]}</div>
-      <div class="day-date">${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}</div>
+      <div class="day-head-row"><div class="day-label">${days[i]}</div><div class="day-date">${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}</div>${isToday ? '<span style="margin-left:auto;font-size:0.62rem;font-weight:700;background:var(--green);color:white;padding:2px 8px;border-radius:10px">TODAY</span>' : ''}</div>
       ${slotsHtml}
       ${renderNutritionBars(dateStr)}
       ${renderBalanceScore(dateStr)}
