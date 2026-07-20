@@ -437,6 +437,79 @@
     .admin-reply-display { background:#f1f8e9;border-left:3px solid var(--green);padding:8px 12px;border-radius:0 8px 8px 0;margin-top:8px;font-size:0.82rem;color:#444;line-height:1.5; }
     .admin-reply-label { font-weight:700;color:var(--green);display:block;font-size:0.75rem;margin-bottom:2px; }
 
+    
+    /* ---- MEAL PLAN SLOTS ---- */
+    .meal-plan-grid { display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px;align-items:start; }
+    .day-col { background:white;border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:0; }
+    .day-col.today { border:2px solid var(--green); }
+    .day-label { font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--green);text-align:center; }
+    .day-date { font-size:0.7rem;color:#aaa;text-align:center;margin-bottom:8px; }
+    .slot-group { margin-bottom:6px; }
+    .slot-label { font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#bbb;margin-bottom:3px;padding:0 2px; }
+    .slot-label.breakfast { color:#f57c00; }
+    .slot-label.lunch     { color:#0288d1; }
+    .slot-label.dinner    { color:#2e7d32; }
+    .slot-label.snacks    { color:#8e24aa; }
+    .plan-recipe-chip { background:#f5f5f5;border-radius:7px;padding:5px 7px;font-size:0.72rem;position:relative;margin-bottom:3px; }
+    .plan-recipe-chip .pc-name { font-weight:600;font-size:0.7rem;line-height:1.3;padding-right:14px; }
+    .plan-recipe-chip .pc-kcal { font-size:0.62rem;color:#aaa; }
+    .plan-recipe-chip .pc-remove { position:absolute;top:3px;right:4px;background:none;border:none;cursor:pointer;font-size:0.65rem;color:#ccc;padding:0; }
+    .plan-recipe-chip .pc-remove:hover { color:#e53935; }
+    .add-to-slot { border:1.5px dashed #e0e0e0;background:none;border-radius:6px;padding:4px 6px;font-size:0.7rem;color:#ccc;cursor:pointer;width:100%;transition:all .15s;text-align:left; }
+    .add-to-slot:hover { border-color:var(--green);color:var(--green); }
+
+    /* ---- DAY NUTRITION BARS ---- */
+    .day-nutrition { border-top:1px solid #f0f0f0;margin-top:8px;padding-top:8px; }
+    .dn-row { display:flex;align-items:center;gap:4px;margin-bottom:3px; }
+    .dn-lbl { font-size:0.58rem;color:#bbb;width:22px;flex-shrink:0;text-align:right; }
+    .dn-bar-wrap { flex:1;height:5px;background:#f0f0f0;border-radius:3px;overflow:hidden; }
+    .dn-bar { height:100%;border-radius:3px;transition:width .3s; }
+    .dn-bar.green  { background:#2e7d32; }
+    .dn-bar.amber  { background:#f9a825; }
+    .dn-bar.low    { background:#e0e0e0; }
+    .dn-val { font-size:0.58rem;color:#aaa;width:24px;flex-shrink:0; }
+
+    /* ---- BALANCE SCORE ---- */
+    .balance-score { text-align:center;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0; }
+    .bs-ring { display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-size:0.75rem;font-weight:800; }
+    .bs-ring.great  { background:#e8f5e9;color:#2e7d32; }
+    .bs-ring.ok     { background:#fff8e1;color:#f57c00; }
+    .bs-ring.low    { background:#fce4ec;color:#c62828; }
+    .bs-label { font-size:0.6rem;color:#aaa;display:block;margin-top:1px; }
+
+    /* ---- GAP ALERTS ---- */
+    .day-alert { font-size:0.62rem;color:#f57c00;text-align:center;margin-top:4px; }
+
+    /* ---- WEEKLY CHART ---- */
+    .weekly-chart-wrap { background:white;border-radius:14px;padding:20px;margin-top:16px; }
+    .weekly-chart-wrap h3 { font-size:0.85rem;font-weight:700;margin-bottom:4px; }
+    .weekly-chart-wrap p { font-size:0.78rem;color:#999;margin-bottom:16px; }
+    .chart-legend { display:flex;gap:16px;margin-bottom:12px; }
+    .legend-item { display:flex;align-items:center;gap:5px;font-size:0.75rem;color:#666; }
+    .legend-dot { width:10px;height:10px;border-radius:50%; }
+
+    /* ---- TARGETS MODAL ---- */
+    .targets-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center; }
+    .targets-box { background:white;border-radius:16px;padding:24px;max-width:360px;width:90%; }
+    .targets-box h3 { font-size:1rem;font-weight:700;margin-bottom:6px; }
+    .targets-box p  { font-size:0.82rem;color:#888;margin-bottom:18px; }
+    .target-row { display:flex;align-items:center;justify-content:space-between;margin-bottom:12px; }
+    .target-row label { font-size:0.9rem;font-weight:600; }
+    .target-row input { width:90px;padding:7px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:0.9rem;text-align:center;outline:none;font-family:inherit; }
+    .target-row input:focus { border-color:var(--green); }
+    .target-unit { font-size:0.8rem;color:#aaa;margin-left:4px; }
+
+    /* ---- PLAN ACTIONS BAR ---- */
+    .plan-actions { display:flex;gap:10px;flex-wrap:wrap;align-items:center; }
+
+    /* ---- RESPONSIVE ---- */
+    @media(max-width:900px) {
+      .meal-plan-grid { grid-template-columns:repeat(4,1fr); }
+    }
+    @media(max-width:600px) {
+      .meal-plan-grid { grid-template-columns:repeat(2,1fr); }
+    }
+
     </style>
 </head>
 <body>
@@ -550,8 +623,19 @@
       <div class="meal-plan-grid" id="meal-plan-grid"></div>
       <div class="plan-actions">
         <button class="btn btn-green" onclick="planToShoppingList()">🛒 Add Week to Shopping List</button>
+        <button class="btn btn-secondary" onclick="openTargetsModal()">🎯 Set Daily Targets</button>
       </div>
-      <div class="plan-weekly-summary" id="plan-weekly-summary"></div>
+      <div id="plan-weekly-summary"></div>
+      <div class="weekly-chart-wrap" id="weekly-chart-wrap" style="display:none">
+        <h3>📊 Weekly Nutrition Overview</h3>
+        <p>Calories and protein across the week vs your daily targets</p>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#c8e6c9"></div> Calories</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2e7d32"></div> Protein</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#e0e0e0;border:1px dashed #aaa"></div> Daily target</div>
+        </div>
+        <div id="weekly-chart-svg"></div>
+      </div>
     </div>
   </div>
 
@@ -568,6 +652,34 @@
     <h3>Add recipe to <span id="picker-day-label"></span></h3>
     <input class="picker-search" type="text" placeholder="Search recipes..." oninput="filterPicker(this.value)" id="picker-search" />
     <div id="picker-list"></div>
+  </div>
+</div>
+
+<!-- TARGETS MODAL -->
+<div id="targets-overlay" class="targets-overlay" style="display:none" onclick="if(event.target===this)closeTargetsModal()">
+  <div class="targets-box">
+    <h3>🎯 Daily Nutrition Targets</h3>
+    <p>Used to measure how well your meal plan hits your goals each day.</p>
+    <div class="target-row">
+      <label>Calories</label>
+      <div><input type="number" id="t-cal" min="800" max="5000" /><span class="target-unit">kcal</span></div>
+    </div>
+    <div class="target-row">
+      <label>Protein</label>
+      <div><input type="number" id="t-protein" min="20" max="300" /><span class="target-unit">g</span></div>
+    </div>
+    <div class="target-row">
+      <label>Fibre</label>
+      <div><input type="number" id="t-fibre" min="10" max="100" /><span class="target-unit">g</span></div>
+    </div>
+    <div class="target-row">
+      <label>Carbs</label>
+      <div><input type="number" id="t-carbs" min="50" max="600" /><span class="target-unit">g</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveTargets()">Save Targets</button>
+      <button class="btn btn-outline" onclick="closeTargetsModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -848,6 +960,11 @@ let darkMode = localStorage.getItem('darkMode') === 'true';
 let mealPlanWeekOffset = 0;
 let mealPlan = {};
 let pickerTargetDate = null;
+let pickerTargetSlot = 'dinner';
+const MEAL_SLOTS = ['breakfast','lunch','dinner','snacks'];
+const SLOT_LABELS = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:'Snacks'};
+const SLOT_ICONS  = {breakfast:'🌅',lunch:'☀️',dinner:'🌙',snacks:'🍎'};
+let dailyTargets = JSON.parse(localStorage.getItem('dailyTargets') || 'null') || {cal:2000,protein:80,fibre:25,carbs:250};
 if (darkMode) document.body.classList.add('dark');
 let authMode = 'signin';
 let openRecipeId = null;
@@ -1652,6 +1769,66 @@ async function shiftWeek(dir) {
   renderMealPlanView();
 }
 
+function calcDayNutrition(dateStr) {
+  const entries = mealPlan[dateStr] || [];
+  let cal=0, protein=0, fibre=0, carbs=0, fat=0;
+  entries.forEach(p => {
+    const r = RECIPES.find(x => x.id === p.recipe_id);
+    if (!r) return;
+    const s = p.servings;
+    cal     += (r.nutrition.calories||0)*s;
+    protein += (r.nutrition.protein||0)*s;
+    fibre   += (r.nutrition.fibre||0)*s;
+    carbs   += (r.nutrition.carbs||0)*s;
+    fat     += (r.nutrition.fat||0)*s;
+  });
+  return {cal, protein, fibre, carbs, fat};
+}
+
+function calcBalanceScore(dateStr) {
+  const entries = mealPlan[dateStr] || [];
+  if (!entries.length) return 0;
+  const n = calcDayNutrition(dateStr);
+  const slots = new Set(entries.map(e => e.meal_slot));
+  let score = 0;
+  score += Math.min(3, slots.size);
+  if (Math.abs(n.cal - dailyTargets.cal) / dailyTargets.cal < 0.2) score += 3;
+  else if (n.cal > dailyTargets.cal * 0.5) score += 1;
+  if (n.protein >= dailyTargets.protein * 0.75) score += 2;
+  else if (n.protein >= dailyTargets.protein * 0.4) score += 1;
+  if (n.fibre >= dailyTargets.fibre * 0.75) score += 2;
+  else if (n.fibre >= dailyTargets.fibre * 0.4) score += 1;
+  return Math.min(10, score);
+}
+
+function renderNutritionBars(dateStr) {
+  const n = calcDayNutrition(dateStr);
+  if (!n.cal) return '';
+  const bars = [
+    {lbl:'Cal', val:n.cal,     max:dailyTargets.cal},
+    {lbl:'Pro', val:n.protein, max:dailyTargets.protein},
+    {lbl:'Fib', val:n.fibre,   max:dailyTargets.fibre},
+  ];
+  return '<div class="day-nutrition">' + bars.map(b => {
+    const pct = Math.min(100, Math.round((b.val/b.max)*100));
+    const cls = pct>=80?'green':pct>=40?'amber':'low';
+    return `<div class="dn-row">
+      <span class="dn-lbl">${b.lbl}</span>
+      <div class="dn-bar-wrap"><div class="dn-bar ${cls}" style="width:${pct}%"></div></div>
+      <span class="dn-val">${pct}%</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderBalanceScore(dateStr) {
+  const entries = mealPlan[dateStr] || [];
+  if (!entries.length) return '';
+  const s = calcBalanceScore(dateStr);
+  const cls = s>=8?'great':s>=5?'ok':'low';
+  const lbl = s>=8?'Great':s>=5?'OK':'Low';
+  return `<div class="balance-score"><span class="bs-ring ${cls}">${s}</span><span class="bs-label">${lbl}</span></div>`;
+}
+
 function renderMealPlanView() {
   const start = getWeekStart(mealPlanWeekOffset);
   const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -1670,48 +1847,116 @@ function renderMealPlanView() {
   grid.innerHTML = dates.map((d, i) => {
     const dateStr = d.toISOString().split('T')[0];
     const isToday = dateStr === today;
-    const entries = mealPlan[dateStr] || [];
+    const dayEntries = mealPlan[dateStr] || [];
+
+    const slotsHtml = MEAL_SLOTS.map(slot => {
+      const slotEntries = dayEntries.filter(e => e.meal_slot === slot);
+      return `<div class="slot-group">
+        <div class="slot-label ${slot}">${SLOT_ICONS[slot]} ${SLOT_LABELS[slot]}</div>
+        ${slotEntries.map(p => {
+          const r = RECIPES.find(x => x.id === p.recipe_id);
+          if (!r) return '';
+          const kcal = r.nutrition.calories ? Math.round(r.nutrition.calories * p.servings) : '';
+          return `<div class="plan-recipe-chip">
+            <div class="pc-name">${r.emoji} ${r.name}</div>
+            ${kcal ? `<div class="pc-kcal">${kcal} kcal</div>` : ''}
+            <button class="pc-remove" onclick="removePlanEntry('${p.id}','${dateStr}')">&#10005;</button>
+          </div>`;
+        }).join('')}
+        <button class="add-to-slot" onclick="openRecipePicker('${dateStr}','${slot}')">+ Add</button>
+      </div>`;
+    }).join('');
+
+    const gapAlert = dayEntries.length > 0 && dayEntries.length < 2
+      ? '<div class="day-alert">⚠️ Only 1 meal planned</div>' : '';
+
     return `<div class="day-col${isToday ? ' today' : ''}">
       <div class="day-label">${days[i]}</div>
       <div class="day-date">${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}</div>
-      ${entries.map(p => {
-        const r = RECIPES.find(x => x.id === p.recipe_id);
-        if (!r) return '';
-        return `<div class="plan-recipe-chip">
-          <div class="pc-emoji">${r.emoji}</div>
-          <div class="pc-name">${r.name}</div>
-          <button class="pc-remove" onclick="removePlanEntry('${p.id}','${dateStr}')">✕</button>
-        </div>`;
-      }).join('')}
-      <button class="add-to-day" onclick="openRecipePicker('${dateStr}')">+ Add</button>
+      ${slotsHtml}
+      ${renderNutritionBars(dateStr)}
+      ${renderBalanceScore(dateStr)}
+      ${gapAlert}
     </div>`;
   }).join('');
 
-  // Weekly plan summary
+  // Weekly summary
   const allEntries = Object.values(mealPlan).flat();
-  let totCal = 0, totProt = 0, totFibre = 0;
+  let totCal=0, totProt=0, totFibre=0;
   allEntries.forEach(p => {
     const r = RECIPES.find(x => x.id === p.recipe_id);
-    if (r) { totCal += (r.nutrition.calories||0)*p.servings; totProt += (r.nutrition.protein||0)*p.servings; totFibre += (r.nutrition.fibre||0)*p.servings; }
+    if (r) { totCal+=(r.nutrition.calories||0)*p.servings; totProt+=(r.nutrition.protein||0)*p.servings; totFibre+=(r.nutrition.fibre||0)*p.servings; }
   });
+
   const summaryEl = document.getElementById('plan-weekly-summary');
-  if (allEntries.length) {
-    summaryEl.innerHTML = `<h3 style="font-size:.85rem;font-weight:700;margin-bottom:10px">Week at a glance</h3>
+  summaryEl.innerHTML = allEntries.length ? `
+    <div class="plan-weekly-summary" style="background:white;border-radius:12px;padding:16px;margin-bottom:0">
       <div class="plan-summary-grid">
         <div class="plan-summary-cell"><div class="psv">${allEntries.length}</div><div class="psl">Meals</div></div>
         <div class="plan-summary-cell"><div class="psv">${Math.round(totCal)}</div><div class="psl">Total kcal</div></div>
         <div class="plan-summary-cell"><div class="psv">${Math.round(totProt)}g</div><div class="psl">Protein</div></div>
         <div class="plan-summary-cell"><div class="psv">${Math.round(totFibre)}g</div><div class="psl">Fibre</div></div>
-      </div>`;
-  } else {
-    summaryEl.innerHTML = '';
-  }
+      </div>
+    </div>` : '';
+
+  renderWeeklyChart(dates);
 }
 
-function openRecipePicker(dateStr) {
+function renderWeeklyChart(dates) {
+  const wrap = document.getElementById('weekly-chart-wrap');
+  const svgEl = document.getElementById('weekly-chart-svg');
+  const hasData = dates.some(d => (mealPlan[d.toISOString().split('T')[0]]||[]).length);
+  if (!hasData) { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+
+  const W = 560, H = 140, padL = 30, padR = 10, padT = 10, padB = 30;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const barW = chartW / 7 * 0.5;
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  const dayData = dates.map(d => calcDayNutrition(d.toISOString().split('T')[0]));
+  const maxCal  = Math.max(dailyTargets.cal * 1.2, ...dayData.map(d => d.cal));
+  const maxProt = Math.max(dailyTargets.protein * 1.2, ...dayData.map(d => d.protein));
+
+  const calTarget  = Math.round((dailyTargets.cal     / maxCal)  * chartH);
+  const protTarget = Math.round((dailyTargets.protein / maxProt) * chartH);
+
+  let bars = '', protLine = '', labels = '';
+  dayData.forEach((d, i) => {
+    const x = padL + (i / 7) * chartW + (chartW / 7) * 0.25;
+    const calH  = d.cal     ? Math.round((d.cal     / maxCal)  * chartH) : 0;
+    const protH = d.protein ? Math.round((d.protein / maxProt) * chartH) : 0;
+    const calY  = padT + chartH - calH;
+    const protY = padT + chartH - protH;
+    const cx    = x + barW / 2;
+
+    bars += `<rect x="${x}" y="${calY}" width="${barW}" height="${calH}" fill="#c8e6c9" rx="3"/>`;
+    if (d.protein) protLine += (i===0 ? `M${cx},${protY}` : `L${cx},${protY}`);
+    labels += `<text x="${padL + (i+0.5)/7*chartW}" y="${H-6}" text-anchor="middle" font-size="9" fill="#aaa">${days[i]}</text>`;
+  });
+
+  const targetCalY  = padT + chartH - calTarget;
+  const targetProtY = padT + chartH - protTarget;
+
+  const svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px">
+    ${bars}
+    ${protLine ? `<path d="${protLine}" fill="none" stroke="#2e7d32" stroke-width="2" stroke-linejoin="round"/>` : ''}
+    <line x1="${padL}" y1="${targetCalY}" x2="${W-padR}" y2="${targetCalY}" stroke="#ccc" stroke-width="1" stroke-dasharray="4,3"/>
+    <line x1="${padL}" y1="${targetProtY}" x2="${W-padR}" y2="${targetProtY}" stroke="#2e7d32" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>
+    ${labels}
+  </svg>`;
+
+  svgEl.innerHTML = svg;
+}
+
+function openRecipePicker(dateStr, slot) {
   pickerTargetDate = dateStr;
+  pickerTargetSlot = slot || 'dinner';
   const d = new Date(dateStr);
-  document.getElementById('picker-day-label').textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('picker-day-label').textContent =
+    SLOT_ICONS[pickerTargetSlot] + ' ' + SLOT_LABELS[pickerTargetSlot] + ' — ' +
+    d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('picker-search').value = '';
   filterPicker('');
   document.getElementById('recipe-picker').style.display = 'flex';
@@ -1726,17 +1971,21 @@ function filterPicker(q) {
   const list = document.getElementById('picker-list');
   const filtered = q ? RECIPES.filter(r => r.name.toLowerCase().includes(q.toLowerCase())) : RECIPES;
   list.innerHTML = filtered.map(r => `
-    <div class="picker-recipe" onclick="addToPlan('${pickerTargetDate}',${r.id})">
+    <div class="picker-recipe" onclick="addToPlan('${pickerTargetDate}','${pickerTargetSlot}',${r.id})">
       <span class="pr-emoji">${r.emoji}</span>
-      <span class="pr-name">${r.name}</span>
+      <div>
+        <div class="pr-name">${r.name}</div>
+        ${r.nutrition.calories ? `<div style="font-size:.75rem;color:#aaa">${r.nutrition.calories} kcal</div>` : ''}
+      </div>
     </div>`).join('');
 }
 
-async function addToPlan(dateStr, recipeId) {
+async function addToPlan(dateStr, slot, recipeId) {
   const r = RECIPES.find(x => x.id === recipeId);
   if (!r) return;
   const { data } = await db.from('meal_plans').insert({
-    user_id: currentUser.id, plan_date: dateStr, recipe_id: recipeId, servings: r.servings
+    user_id: currentUser.id, plan_date: dateStr, recipe_id: recipeId,
+    servings: r.servings, meal_slot: slot
   }).select().single();
   if (data) {
     if (!mealPlan[dateStr]) mealPlan[dateStr] = [];
@@ -1772,6 +2021,32 @@ async function planToShoppingList() {
   if (added) toast('🛒 ' + added + ' recipe' + (added !== 1 ? 's' : '') + ' added to shopping list');
   else toast('All meals are already in your shopping list');
 }
+
+function openTargetsModal() {
+  document.getElementById('t-cal').value     = dailyTargets.cal;
+  document.getElementById('t-protein').value = dailyTargets.protein;
+  document.getElementById('t-fibre').value   = dailyTargets.fibre;
+  document.getElementById('t-carbs').value   = dailyTargets.carbs;
+  document.getElementById('targets-overlay').style.display = 'flex';
+}
+
+function closeTargetsModal() {
+  document.getElementById('targets-overlay').style.display = 'none';
+}
+
+function saveTargets() {
+  dailyTargets = {
+    cal:     parseInt(document.getElementById('t-cal').value)     || 2000,
+    protein: parseInt(document.getElementById('t-protein').value) || 80,
+    fibre:   parseInt(document.getElementById('t-fibre').value)   || 25,
+    carbs:   parseInt(document.getElementById('t-carbs').value)   || 250,
+  };
+  localStorage.setItem('dailyTargets', JSON.stringify(dailyTargets));
+  closeTargetsModal();
+  renderMealPlanView();
+  toast('✓ Targets saved');
+}
+
 
 
 // ================================================================
