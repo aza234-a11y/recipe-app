@@ -956,7 +956,8 @@ function mapRecipe(r) {
     macroNotes: r.macro_notes || {},
     healthNotes: r.health_notes || [],
     ingredients: r.ingredients || [],
-    steps: r.steps || []
+    steps: r.steps || [],
+    images: Array.isArray(r.images) ? r.images : []
   };
 }
 
