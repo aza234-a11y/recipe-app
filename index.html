@@ -833,6 +833,15 @@ let selectedRating = 0;
 //  INIT
 // ================================================================
 db.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    // User arrived via a password reset link — show the reset form
+    document.getElementById('view-auth').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth-card-normal').style.display = 'none';
+    document.getElementById('auth-card-forgot').style.display = 'none';
+    document.getElementById('auth-card-reset').style.display = 'block';
+    return;
+  }
   if (session?.user) {
     currentUser = session.user;
     document.getElementById('view-auth').style.display = 'none';
@@ -1810,18 +1819,7 @@ async function handleResetPassword() {
   }
 }
 
-// Check on load if this is a password reset redirect
-(function checkResetToken() {
-  const hash = window.location.hash;
-  if (hash.includes('type=recovery')) {
-    document.getElementById('view-auth').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('auth-card-normal').style.display = 'none';
-    document.getElementById('auth-card-reset').style.display = 'block';
-    // Clear the hash so it doesn't interfere
-    history.replaceState(null, '', window.location.pathname);
-  }
-})();
+
 
 // ================================================================
 //  TOAST
