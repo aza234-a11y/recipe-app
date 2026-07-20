@@ -443,7 +443,8 @@
 
 <!-- ============================= AUTH ============================= -->
 <div id="view-auth">
-  <div class="auth-card">
+  <!-- Normal login/signup -->
+  <div class="auth-card" id="auth-card-normal">
     <div class="auth-logo">🥗</div>
     <h1>Green Table</h1>
     <p>Wholesome vegetarian recipes</p>
@@ -457,7 +458,34 @@
     <input type="email" id="auth-email" placeholder="Email address" autocomplete="email" />
     <input type="password" id="auth-password" placeholder="Password (min 6 characters)" autocomplete="current-password" />
     <button class="submit-btn" id="auth-btn" onclick="handleAuth()">Sign In</button>
+    <p style="text-align:center;margin-top:12px;font-size:0.85rem">
+      <a href="#" onclick="showForgotPassword()" style="color:var(--green);text-decoration:none">Forgot password?</a>
+    </p>
     <div class="auth-error" id="auth-error"></div>
+  </div>
+
+  <!-- Forgot password -->
+  <div class="auth-card" id="auth-card-forgot" style="display:none">
+    <div class="auth-logo">🔑</div>
+    <h1>Reset Password</h1>
+    <p>Enter your email and we'll send a reset link</p>
+    <input type="email" id="forgot-email" placeholder="Email address" autocomplete="email" />
+    <button class="submit-btn" id="forgot-btn" onclick="handleForgotPassword()">Send Reset Link</button>
+    <p style="text-align:center;margin-top:12px;font-size:0.85rem">
+      <a href="#" onclick="showNormalAuth()" style="color:var(--green);text-decoration:none">← Back to sign in</a>
+    </p>
+    <div class="auth-error" id="forgot-error"></div>
+  </div>
+
+  <!-- Set new password (arrived via reset link) -->
+  <div class="auth-card" id="auth-card-reset" style="display:none">
+    <div class="auth-logo">🔒</div>
+    <h1>Set New Password</h1>
+    <p>Choose a new password for your account</p>
+    <input type="password" id="reset-password" placeholder="New password (min 6 characters)" autocomplete="new-password" />
+    <input type="password" id="reset-password2" placeholder="Confirm new password" autocomplete="new-password" />
+    <button class="submit-btn" id="reset-btn" onclick="handleResetPassword()">Update Password</button>
+    <div class="auth-error" id="reset-error"></div>
   </div>
 </div>
 
@@ -1711,6 +1739,89 @@ async function planToShoppingList() {
   if (added) toast('🛒 ' + added + ' recipe' + (added !== 1 ? 's' : '') + ' added to shopping list');
   else toast('All meals are already in your shopping list');
 }
+
+
+// ================================================================
+//  FORGOT / RESET PASSWORD
+// ================================================================
+function showForgotPassword() {
+  document.getElementById('auth-card-normal').style.display = 'none';
+  document.getElementById('auth-card-forgot').style.display = 'block';
+  document.getElementById('forgot-error').classList.remove('show');
+}
+
+function showNormalAuth() {
+  document.getElementById('auth-card-forgot').style.display = 'none';
+  document.getElementById('auth-card-reset').style.display = 'none';
+  document.getElementById('auth-card-normal').style.display = 'block';
+}
+
+async function handleForgotPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showForgotError('Please enter your email address.'); return; }
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  btn.disabled = false;
+  if (error) {
+    btn.textContent = 'Send Reset Link';
+    showForgotError(error.message);
+  } else {
+    btn.textContent = 'Send Reset Link';
+    document.getElementById('auth-card-forgot').innerHTML = `
+      <div class="auth-logo">✅</div>
+      <h1>Check your email</h1>
+      <p style="text-align:center;color:#555;line-height:1.6">A password reset link has been sent to <strong>${email}</strong>.<br>Click the link in the email to set a new password.</p>
+      <p style="text-align:center;margin-top:16px;font-size:0.85rem"><a href="#" onclick="location.reload()" style="color:var(--green);text-decoration:none">← Back to sign in</a></p>`;
+  }
+}
+
+function showForgotError(msg) {
+  const el = document.getElementById('forgot-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+async function handleResetPassword() {
+  const p1 = document.getElementById('reset-password').value;
+  const p2 = document.getElementById('reset-password2').value;
+  const errEl = document.getElementById('reset-error');
+  errEl.classList.remove('show');
+  if (p1.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.add('show'); return; }
+  if (p1 !== p2) { errEl.textContent = 'Passwords do not match.'; errEl.classList.add('show'); return; }
+  const btn = document.getElementById('reset-btn');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  const { error } = await db.auth.updateUser({ password: p1 });
+  btn.disabled = false;
+  if (error) {
+    btn.textContent = 'Update Password';
+    errEl.textContent = error.message;
+    errEl.classList.add('show');
+  } else {
+    document.getElementById('auth-card-reset').innerHTML = `
+      <div class="auth-logo">✅</div>
+      <h1>Password updated!</h1>
+      <p style="text-align:center;color:#555">You can now sign in with your new password.</p>
+      <p style="text-align:center;margin-top:16px;font-size:0.85rem"><a href="#" onclick="location.reload()" style="color:var(--green);text-decoration:none">← Sign in</a></p>`;
+  }
+}
+
+// Check on load if this is a password reset redirect
+(function checkResetToken() {
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery')) {
+    document.getElementById('view-auth').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth-card-normal').style.display = 'none';
+    document.getElementById('auth-card-reset').style.display = 'block';
+    // Clear the hash so it doesn't interfere
+    history.replaceState(null, '', window.location.pathname);
+  }
+})();
 
 // ================================================================
 //  TOAST
