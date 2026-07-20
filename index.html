@@ -1754,7 +1754,7 @@ async function removePlanEntry(entryId, dateStr) {
 
 async function planToShoppingList() {
   const allEntries = Object.values(mealPlan).flat();
-  if (!allEntries.length) { toast('No meals in this week's plan'); return; }
+  if (!allEntries.length) { toast("No meals in this week's plan"); return; }
   let added = 0;
   for (const p of allEntries) {
     const r = RECIPES.find(x => x.id === p.recipe_id);
