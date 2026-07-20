@@ -595,6 +595,31 @@ const SUPABASE_URL = 'https://qcwtbawegbviazqegpta.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_chTRjscSEK1AJsS5BngDRQ_Cy8ThB34';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ---- Password reset detection (runs immediately on page load) ----
+function showResetForm() {
+  document.getElementById('view-auth').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('auth-card-normal').style.display = 'none';
+  document.getElementById('auth-card-forgot').style.display = 'none';
+  document.getElementById('auth-card-reset').style.display = 'block';
+}
+
+// Supabase PKCE flow sends ?code= in the URL
+// Supabase implicit flow sends #type=recovery in the hash
+(async function detectPasswordReset() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace('#', ''));
+  if (urlParams.get('code') || hashParams.get('type') === 'recovery') {
+    showResetForm();
+    if (urlParams.get('code')) {
+      // Exchange the code so we have a valid session for updateUser
+      await db.auth.exchangeCodeForSession(urlParams.get('code'));
+      // Clean up the URL
+      history.replaceState(null, '', window.location.pathname);
+    }
+  }
+})();
+
 // ================================================================
 //  RECIPE DATA (loaded from Supabase)
 // ================================================================
@@ -834,12 +859,11 @@ let selectedRating = 0;
 // ================================================================
 db.auth.onAuthStateChange(async (event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
-    // User arrived via a password reset link — show the reset form
-    document.getElementById('view-auth').style.display = 'flex';
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('auth-card-normal').style.display = 'none';
-    document.getElementById('auth-card-forgot').style.display = 'none';
-    document.getElementById('auth-card-reset').style.display = 'block';
+    showResetForm();
+    return;
+  }
+  // If we're already showing the reset form, don't redirect to app on SIGNED_IN
+  if (event === 'SIGNED_IN' && document.getElementById('auth-card-reset').style.display === 'block') {
     return;
   }
   if (session?.user) {
