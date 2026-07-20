@@ -294,19 +294,7 @@
 
 
 
-            <!-- PHOTOS -->
-      <div class="form-section">
-        <div class="form-section-title">Photos</div>
-        <label class="photo-upload-btn">
-          📷 Add Photos
-          <input type="file" accept="image/*" multiple style="display:none" onchange="handleImageSelect(this.files); this.value=''"/>
-        </label>
-        <div class="photo-uploading" id="photo-uploading">Uploading…</div>
-        <div class="photo-grid" id="photo-grid"></div>
-        <div class="photo-hint">First photo is the main image shown on the recipe card. Click a photo to make it the main one. If no photos are added, the emoji is shown instead.</div>
-      </div>
-
-<!-- NUTRITION CONFIG SECTION -->
+      <!-- NUTRITION CONFIG SECTION -->
       <div class="section" id="section-config">
         <div class="section-head">
           <h1>Nutrition Display Config</h1>
@@ -396,6 +384,18 @@
             </label>
           </div>
         </div>
+      </div>
+
+      <!-- PHOTOS -->
+      <div class="form-section">
+        <div class="form-section-title">Photos</div>
+        <label class="photo-upload-btn">
+          📷 Add Photos
+          <input type="file" accept="image/*" multiple style="display:none" onchange="handleImageSelect(this.files); this.value=''"/>
+        </label>
+        <div class="photo-uploading" id="photo-uploading">Uploading…</div>
+        <div class="photo-grid" id="photo-grid"></div>
+        <div class="photo-hint">First photo is the main image shown on the recipe card. Click a photo to make it the main one. If no photos are added, the emoji is shown instead.</div>
       </div>
 
       <!-- NUTRITION -->
