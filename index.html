@@ -650,6 +650,17 @@
     body.dark .rv-chip,body.dark .week-nav-btn,body.dark .add-to-slot { background:#1e1e1e;border-color:#333;color:#aaa; }
     body.dark .picker-recipe:hover { background:#2a2a2a; }
     body.dark .plan-summary-cell,body.dark .wn-cell,body.dark .related-chip { background:#2a2a2a; }
+  
+    /* ---- RECIPE PHOTOS ---- */
+    .card-hero img, .modal-hero img { width:100%;height:100%;object-fit:cover;display:block; }
+    .card-hero.has-img, .modal-hero.has-img { font-size:0; padding:0; }
+    .modal-gallery { display:flex;gap:8px;overflow-x:auto;padding:12px 18px 0;background:white; }
+    .modal-gallery::-webkit-scrollbar { height:3px; }
+    .mg-thumb { width:72px;height:54px;border-radius:8px;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid transparent;opacity:.75;transition:all .15s; }
+    .mg-thumb.active { border-color:var(--green);opacity:1; }
+    .mg-thumb img { width:100%;height:100%;object-fit:cover;display:block; }
+    body.dark .modal-gallery { background:#1e1e1e; }
+
   </style>
 </head>
 <body>
@@ -1137,6 +1148,7 @@ let darkMode = localStorage.getItem('darkMode') === 'true';
 let mealPlanWeekOffset = 0;
 let mealPlan = {};
 let pickerTargetDate = null;
+let modalImageIdx = 0;
 let pickerTargetSlot = 'dinner';
 const MEAL_SLOTS = ['breakfast','lunch','dinner','snacks'];
 const SLOT_LABELS = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:'Snacks'};
@@ -1284,7 +1296,9 @@ function renderGrid(list) {
     const badges = getNutrientBadges(r);
     return `
     <div class="recipe-card" onclick="openRecipe(${r.id})">
-      <div class="card-hero" style="background:${r.color}">${r.emoji}</div>
+      ${r.images && r.images.length
+        ? `<div class="card-hero has-img"><img src="${r.images[0]}" alt="${r.name}" loading="lazy"/></div>`
+        : `<div class="card-hero" style="background:${r.color}">${r.emoji}</div>`}
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
           <h3 style="margin:0">${r.name}</h3>
@@ -1314,6 +1328,7 @@ function renderGrid(list) {
 //  RECIPE MODAL
 // ================================================================
 function openRecipe(id) {
+  modalImageIdx = 0;
   openRecipeId = id;
   const r = RECIPES.find(x => x.id === id);
   modalServings = r.servings;
@@ -1342,8 +1357,18 @@ function renderModal() {
   const inList = shoppingItems.some(s => s.recipe_id === r.id);
 
   const isFav = favourites.includes(r.id);
+  const heroImg = (r.images && r.images.length) ? r.images[modalImageIdx] || r.images[0] : null;
   document.getElementById('modal-box').innerHTML = `
-    <div class="modal-hero" style="background:${r.color}">${r.emoji}</div>
+    ${heroImg
+      ? `<div class="modal-hero has-img"><img src="${heroImg}" alt="${r.name}"/></div>`
+      : `<div class="modal-hero" style="background:${r.color}">${r.emoji}</div>`}
+    ${r.images && r.images.length > 1 ? `
+      <div class="modal-gallery">
+        ${r.images.map((u, i) => `
+          <div class="mg-thumb ${i === (modalImageIdx || 0) ? 'active' : ''}" onclick="modalImageIdx=${i};renderModal()">
+            <img src="${u}" alt="Photo ${i+1}" loading="lazy"/>
+          </div>`).join('')}
+      </div>` : ''}
     <div class="modal-body">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
         <h2 style="margin:0">${r.name}</h2>
