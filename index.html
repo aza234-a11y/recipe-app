@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Green Table — Vegetarian Recipes</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #3a6b35; --green-light: #eafbe7; --green-dark: #2e5529;
+      --bg: #f7f5f0; --card: #fff; --text: #2d2d2d; --muted: #666; --border: #e5e5e5;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ---- AUTH ---- */
+    #view-auth {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #2e5529 0%, #3a6b35 50%, #5a8c52 100%); padding: 20px;
+    }
+    .auth-card { background: white; border-radius: 20px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+    .auth-logo { font-size: 3rem; text-align: center; margin-bottom: 8px; }
+    .auth-card h1 { text-align: center; font-size: 1.8rem; font-weight: 800; color: var(--green); margin-bottom: 4px; }
+    .auth-card > p { text-align: center; color: var(--muted); margin-bottom: 28px; font-size: 0.9rem; }
+    .auth-tabs { display: flex; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 22px; }
+    .auth-tabs button {
+      flex: 1; padding: 8px; border: none; background: transparent; border-radius: 8px;
+      cursor: pointer; font-size: 0.9rem; font-weight: 600; color: var(--muted); transition: all 0.15s;
+    }
+    .auth-tabs button.active { background: white; color: var(--green); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .auth-card input {
+      width: 100%; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 0.95rem; margin-bottom: 12px; outline: none; transition: border-color 0.15s; font-family: inherit;
+    }
+    .auth-card input:focus { border-color: var(--green); }
+    .submit-btn {
+      width: 100%; padding: 13px; background: var(--green); color: white; border: none;
+      border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 4px; transition: background 0.15s;
+    }
+    .submit-btn:hover { background: var(--green-dark); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .auth-error { color: #e53e3e; font-size: 0.85rem; margin-top: 12px; text-align: center; padding: 10px 14px; background: #fff5f5; border-radius: 8px; display: none; }
+    .auth-error.show { display: block; }
+
+    /* ---- NAVBAR ---- */
+    #navbar {
+      background: var(--green); color: white; padding: 0 24px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .nav-brand { font-size: 1.15rem; font-weight: 800; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-link {
+      padding: 7px 14px; border-radius: 8px; border: none; background: transparent;
+      color: rgba(255,255,255,0.75); cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: all 0.15s;
+    }
+    .nav-link:hover, .nav-link.active { background: rgba(255,255,255,0.15); color: white; }
+    .nav-actions { display: flex; gap: 8px; align-items: center; }
+    .cart-btn {
+      padding: 7px 14px; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.4);
+      background: transparent; color: white; cursor: pointer; font-size: 0.88rem; font-weight: 600; transition: all 0.15s;
+    }
+    .cart-btn:hover { background: rgba(255,255,255,0.1); }
+    .signout-btn {
+      padding: 7px 14px; border-radius: 8px; border: none;
+      background: rgba(255,255,255,0.15); color: white; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.15s;
+    }
+    .signout-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ---- APP VIEWS ---- */
+    .app-view { display: none; }
+    .app-view.active { display: block; }
+    .main { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+    /* ---- FILTERS ---- */
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+    .filter-btn {
+      padding: 6px 16px; border-radius: 20px; border: 1.5px solid #c8dfc6;
+      background: white; color: var(--green); cursor: pointer; font-size: 0.84rem; font-weight: 600; transition: all 0.15s;
+    }
+    .filter-btn.active, .filter-btn:hover { background: var(--green); color: white; border-color: var(--green); }
+
+    /* ---- RECIPE GRID ---- */
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
+    .recipe-card {
+      background: white; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .recipe-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12); }
+    .card-hero { height: 155px; display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+    .card-body { padding: 16px; }
+    .card-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 5px; }
+    .card-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.5; margin-bottom: 10px; }
+    .card-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+    .tag { background: var(--green-light); color: var(--green); padding: 2px 9px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; }
+    .card-macros { display: flex; gap: 6px; margin-bottom: 12px; }
+    .macro { flex: 1; text-align: center; background: var(--bg); border-radius: 8px; padding: 7px 2px; }
+    .macro .val { font-size: 0.92rem; font-weight: 700; color: var(--green); }
+    .macro .lbl { font-size: 0.6rem; color: #999; text-transform: uppercase; letter-spacing: 0.3px; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .card-meta { font-size: 0.76rem; color: #999; }
+    .list-btn {
+      padding: 5px 11px; border-radius: 7px; border: 1.5px solid #c8dfc6;
+      background: white; color: var(--green); cursor: pointer; font-size: 0.76rem; font-weight: 600; transition: all 0.15s;
+    }
+    .list-btn.added { background: var(--green); color: white; border-color: var(--green); }
+
+    /* ---- STARS ---- */
+    .stars { color: #f6c90e; letter-spacing: 2px; font-size: 1rem; }
+    .star-input { display: flex; gap: 6px; }
+    .star-input span { font-size: 1.6rem; cursor: pointer; color: #ddd; transition: color 0.1s; user-select: none; }
+    .star-input span.selected { color: #f6c90e; }
+
+    /* ---- MODAL ---- */
+    #modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      z-index: 100; align-items: flex-start; justify-content: center; padding: 20px; overflow-y: auto;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal-box { background: white; border-radius: 20px; max-width: 740px; width: 100%; margin: auto; overflow: hidden; }
+    .modal-hero { height: 180px; display: flex; align-items: center; justify-content: center; font-size: 5rem; }
+    .modal-body { padding: 28px; }
+    .modal-body h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
+    .modal-desc { color: var(--muted); margin-bottom: 20px; line-height: 1.6; font-size: 0.9rem; }
+
+    /* ---- SERVING ADJUSTER ---- */
+    .serving-adjuster {
+      display: flex; align-items: center; gap: 16px; background: var(--green-light);
+      border-radius: 12px; padding: 12px 20px; margin-bottom: 20px;
+    }
+    .serving-adjuster label { font-weight: 700; color: var(--green); font-size: 0.9rem; flex: 1; }
+    .serving-controls { display: flex; align-items: center; gap: 12px; }
+    .serving-btn {
+      width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--green);
+      background: white; color: var(--green); font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    }
+    .serving-btn:hover { background: var(--green); color: white; }
+    .serving-num { font-size: 1.2rem; font-weight: 800; color: var(--green); min-width: 24px; text-align: center; }
+    .serving-label { font-size: 0.85rem; color: var(--green); font-weight: 600; }
+
+    /* ---- MODAL MACROS ---- */
+    .modal-macros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
+    .modal-macro { flex: 1; min-width: 80px; background: var(--bg); border-radius: 12px; padding: 12px 8px; text-align: center; }
+    .modal-macro .val { font-size: 1.25rem; font-weight: 800; color: var(--green); }
+    .modal-macro .lbl { font-size: 0.66rem; color: #999; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .modal-macro .note { font-size: 0.66rem; color: var(--green); margin-top: 4px; font-style: italic; line-height: 1.35; }
+
+    .section-title { font-size: 0.82rem; font-weight: 800; color: var(--green); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; margin-top: 24px; }
+
+    /* ---- HEALTH NOTES ---- */
+    .health-notes { display: flex; flex-direction: column; gap: 10px; }
+    .health-note { background: var(--green-light); border-left: 4px solid var(--green); border-radius: 0 10px 10px 0; padding: 12px 16px; }
+    .health-note .hn-title { font-weight: 700; font-size: 0.9rem; color: var(--green-dark); margin-bottom: 4px; }
+    .health-note .hn-body { font-size: 0.83rem; color: #444; line-height: 1.6; }
+
+    /* ---- INGREDIENTS ---- */
+    .ing-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+    .ing-list li { display: flex; align-items: center; gap: 10px; font-size: 0.87rem; padding: 7px 12px; background: var(--bg); border-radius: 8px; }
+    .ing-amt { font-weight: 700; color: var(--green); min-width: 80px; font-size: 0.83rem; }
+
+    /* ---- STEPS ---- */
+    .steps-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .steps-list li { display: flex; gap: 14px; font-size: 0.87rem; line-height: 1.65; }
+    .step-num {
+      background: var(--green); color: white; border-radius: 50%; min-width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.78rem; flex-shrink: 0;
+    }
+
+    /* ---- REVIEWS ---- */
+    .review-form { background: var(--bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .review-form p { font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .review-form textarea {
+      width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 0.87rem; resize: none; outline: none; margin-top: 10px; font-family: inherit; background: white;
+    }
+    .review-form textarea:focus { border-color: var(--green); }
+    .review-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .review-item:last-child { border-bottom: none; }
+    .review-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+    .review-author { font-weight: 700; font-size: 0.87rem; }
+    .review-date { font-size: 0.75rem; color: #999; }
+    .review-text { font-size: 0.85rem; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+    .no-reviews { color: #bbb; font-size: 0.87rem; text-align: center; padding: 20px; }
+
+    /* ---- MODAL FOOTER ---- */
+    .modal-footer {
+      padding: 16px 28px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    }
+    .modal-footer-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* ---- BUTTONS ---- */
+    .btn { padding: 9px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.87rem; font-weight: 600; transition: all 0.15s; }
+    .btn-green { background: var(--green); color: white; }
+    .btn-green:hover { background: var(--green-dark); }
+    .btn-outline { background: white; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: #bbb; }
+    .btn-amber { background: #fff8e1; color: #e65100; border: 1.5px solid #ffe082; }
+    .btn-amber:hover { background: #fff3e0; }
+    .btn-sm { padding: 6px 12px; font-size: 0.82rem; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ---- SHOPPING PANEL ---- */
+    #shopping-panel {
+      position: fixed; right: 0; top: 0; bottom: 0; width: 380px;
+      background: white; box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+      z-index: 200; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.25s ease;
+    }
+    #shopping-panel.open { transform: translateX(0); }
+    .panel-header {
+      background: var(--green); color: white; padding: 18px 22px;
+      display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+    }
+    .panel-header h3 { font-size: 1.05rem; font-weight: 700; }
+    .close-panel-btn { background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer; line-height: 1; }
+    .panel-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+    .panel-recipe { margin-bottom: 18px; }
+    .panel-recipe-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+    }
+    .panel-recipe-title { font-size: 0.87rem; font-weight: 700; color: var(--green); }
+    .panel-serving-adj { display: flex; align-items: center; gap: 6px; }
+    .panel-srv-btn {
+      width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--green);
+      background: white; color: var(--green); font-size: 0.85rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s; font-weight: 700;
+    }
+    .panel-srv-btn:hover { background: var(--green); color: white; }
+    .panel-srv-num { font-weight: 700; font-size: 0.87rem; color: var(--green); min-width: 20px; text-align: center; }
+    .panel-recipe ul { list-style: none; }
+    .panel-recipe ul li { font-size: 0.81rem; padding: 3px 0; color: #555; display: flex; gap: 8px; }
+    .panel-recipe ul li .p-amt { font-weight: 600; color: var(--text); min-width: 70px; }
+    .panel-remove-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.9rem; padding: 2px 6px; }
+    .panel-remove-btn:hover { color: #e53e3e; }
+    .panel-empty { text-align: center; color: #bbb; margin-top: 60px; font-size: 0.9rem; }
+    .panel-empty .icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+    .panel-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .copy-flash { background: var(--green-light); color: var(--green-dark); padding: 8px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; text-align: center; display: none; }
+    .copy-flash.show { display: block; }
+
+    /* ---- PROFILE ---- */
+    .profile-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+    .profile-avatar {
+      width: 60px; height: 60px; background: var(--green); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; font-weight: 700;
+    }
+    .profile-name { font-size: 1.4rem; font-weight: 800; }
+    .profile-sub { font-size: 0.87rem; color: var(--muted); margin-top: 2px; }
+    .section-header { display: flex; align-items: center; margin-bottom: 16px; }
+    .section-header h3 { font-size: 1.1rem; font-weight: 700; }
+    .meal-log-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+    .meal-log-card {
+      background: white; border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06); display: flex; gap: 12px; align-items: center;
+    }
+    .meal-log-emoji { font-size: 1.8rem; }
+    .meal-log-info h4 { font-size: 0.88rem; font-weight: 700; margin-bottom: 2px; }
+    .meal-log-info p { font-size: 0.76rem; color: var(--muted); }
+
+    /* ---- UTILITY ---- */
+    .empty-state { text-align: center; padding: 40px 20px; color: #bbb; }
+    .empty-state .icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+    .loading { display: flex; align-items: center; justify-content: center; padding: 20px; color: var(--muted); font-size: 0.88rem; }
+
+    /* ---- TOAST ---- */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+      background: #2d2d2d; color: white; padding: 10px 22px; border-radius: 10px;
+      font-size: 0.88rem; font-weight: 600; z-index: 1000; transition: transform 0.3s ease; white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      #shopping-panel { width: 100%; }
+      .modal-body { padding: 20px; }
+      .nav-links { display: none; }
+      .modal-footer { flex-direction: column; }
+    }
+  
+    /* ---- Extended Nutrient Cards ---- */
+    .nutrients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 24px; }
+    .nutrient-card { background: var(--bg); border-radius: 12px; padding: 12px 10px; }
+    .nutrient-card .nc-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+    .nutrient-card .nc-val { font-size: 1.1rem; font-weight: 800; color: var(--green); }
+    .nutrient-card .nc-rni { font-size: 0.7rem; color: #aaa; margin-top: 2px; }
+    .nutrient-card .nc-bar-wrap { height: 4px; background: #e8e8e8; border-radius: 4px; margin-top: 6px; overflow: hidden; }
+    .nutrient-card .nc-bar { height: 100%; background: var(--green); border-radius: 4px; max-width: 100%; }
+    .nutrient-card .nc-note { font-size: 0.72rem; color: #666; margin-top: 5px; line-height: 1.4; }
+
+    
+    /* ---- Consolidated Shopping List ---- */
+    .panel-recipes-bar { border-bottom: 1px solid #e0e0e0; padding-bottom: 12px; margin-bottom: 16px; }
+    .panel-recipe-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+    .panel-recipe-row-name { font-size: 0.88rem; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 8px; }
+    .panel-recipe-row-controls { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .p-srv-sm { display:flex;align-items:center;gap:3px;background:#f5f5f5;border-radius:20px;padding:2px 6px;font-size:0.8rem; }
+    .p-srv-sm button { border:none;background:none;cursor:pointer;font-size:0.9rem;padding:0 2px;color:#2e7d32;font-weight:700; }
+    .p-srv-sm span { min-width:18px;text-align:center;font-weight:600; }
+    .p-rm { border:none;background:none;cursor:pointer;color:#bbb;font-size:0.9rem;padding:0 4px; }
+    .p-rm:hover { color:#e53935; }
+    .panel-ing-list { list-style: none; padding: 0; margin: 0; }
+    .panel-ing-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f5f5f5; cursor: pointer; user-select: none; }
+    .panel-ing-row:last-child { border-bottom: none; }
+    .panel-ing-row.ticked .p-ing-name, .panel-ing-row.ticked .p-ing-amt { opacity: 0.32; text-decoration: line-through; }
+    .p-cb { width:18px;height:18px;border:2px solid #ccc;border-radius:4px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:.7rem;transition:all .15s; }
+    .panel-ing-row.ticked .p-cb { background:#2e7d32;border-color:#2e7d32;color:#fff; }
+    .p-ing-name { font-size:0.9rem;flex:1; }
+    .p-ing-amt { font-size:0.88rem;font-weight:700;color:#2e7d32;white-space:nowrap; }
+    .panel-section-label { font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:#999;font-weight:600;margin-bottom:8px; }
+
+    
+    /* ---- DARK MODE ---- */
+    body.dark { --green:#4caf50;--green-dark:#388e3c;--green-light:#1a2e1a;--bg:#1e1e1e;--bg2:#2a2a2a;--border:#333;--muted:#aaa; background:#121212;color:#e0e0e0; }
+    body.dark .recipe-card,body.dark #modal-box,body.dark .auth-card { background:#1e1e1e; }
+    body.dark .ing-list li,body.dark .modal-macro,body.dark .macro { background:#2a2a2a; }
+    body.dark .health-note { background:#1a2e1a; }
+    body.dark .filter-btn { background:#1e1e1e;color:#4caf50;border-color:#333; }
+    body.dark .filter-btn.active { background:#4caf50;color:#fff; }
+    body.dark input,body.dark textarea { background:#2a2a2a;color:#e0e0e0;border-color:#444; }
+    body.dark .panel-body,body.dark #shopping-panel { background:#1e1e1e;border-color:#333; }
+    .dark-btn { padding:7px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:white;cursor:pointer;font-size:1rem;transition:background .15s; }
+    .dark-btn:hover { background:rgba(255,255,255,0.2); }
+
+    /* ---- SEARCH ---- */
+    .search-wrap { position:relative;margin-bottom:16px; }
+    .search-wrap input { width:100%;padding:11px 16px 11px 40px;border:1.5px solid var(--border);border-radius:12px;font-size:0.95rem;background:white;outline:none;font-family:inherit;transition:border-color .15s;box-sizing:border-box; }
+    .search-wrap input:focus { border-color:var(--green); }
+    .search-icon { position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#aaa;font-size:1rem;pointer-events:none; }
+    .search-clear { position:absolute;right:12px;top:50%;transform:translateY(-50%);border:none;background:none;color:#aaa;cursor:pointer;font-size:1rem;display:none; }
+
+    /* ---- NUTRIENT BADGE on cards ---- */
+    .card-nutrient-badges { display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px; }
+    .nbadge { font-size:0.67rem;font-weight:700;padding:2px 7px;border-radius:10px;background:#e8f5e9;color:#2e7d32; }
+    .nbadge.iron { background:#fce4ec;color:#c62828; }
+    .nbadge.vitC { background:#fff8e1;color:#e65100; }
+    .nbadge.vitD { background:#fff3e0;color:#e65100; }
+    .nbadge.b12  { background:#f3e5f5;color:#6a1b9a; }
+    .nbadge.calcium { background:#e3f2fd;color:#1565c0; }
+
+    /* ---- RECENTLY VIEWED ---- */
+    .recently-viewed { margin-bottom:20px; }
+    .recently-viewed h4 { font-size:0.72rem;font-weight:700;color:#999;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px; }
+    .rv-scroll { display:flex;gap:10px;overflow-x:auto;padding-bottom:4px; }
+    .rv-scroll::-webkit-scrollbar { height:3px; }
+    .rv-scroll::-webkit-scrollbar-thumb { background:#ddd;border-radius:3px; }
+    .rv-chip { display:flex;align-items:center;gap:6px;padding:6px 12px;background:white;border:1.5px solid #e0e0e0;border-radius:20px;cursor:pointer;white-space:nowrap;font-size:0.82rem;font-weight:600;transition:all .15s;flex-shrink:0; }
+    .rv-chip:hover { border-color:var(--green);color:var(--green); }
+
+    /* ---- FAVOURITES ---- */
+    .fav-btn { background:none;border:none;cursor:pointer;font-size:1.3rem;line-height:1;padding:2px;transition:transform .15s; }
+    .fav-btn:hover { transform:scale(1.2); }
+    .fav-section { margin-top:28px; }
+    .fav-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:12px; }
+    .fav-card { background:white;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:box-shadow .15s; }
+    .fav-card:hover { box-shadow:0 4px 12px rgba(0,0,0,.12); }
+    .fav-card .fav-emoji { font-size:2rem;width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center; }
+    .fav-card .fav-name { font-size:0.88rem;font-weight:700; }
+    .fav-card .fav-tags { font-size:0.72rem;color:#999;margin-top:2px; }
+
+    /* ---- MEAL PLAN ---- */
+    .meal-plan-nav { display:flex;align-items:center;gap:12px;margin-bottom:20px; }
+    .meal-plan-nav h2 { flex:1;font-size:1rem;font-weight:700;text-align:center; }
+    .week-nav-btn { border:1.5px solid var(--border);background:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-weight:700;font-size:0.9rem;transition:all .15s; }
+    .week-nav-btn:hover { border-color:var(--green);color:var(--green); }
+    .meal-plan-grid { display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:20px; }
+    .day-col { background:white;border-radius:12px;padding:10px;min-height:160px;display:flex;flex-direction:column;gap:6px; }
+    .day-col.today { border:2px solid var(--green); }
+    .day-label { font-size:0.72rem;font-weight:700;text-transform:uppercase;color:var(--green);text-align:center;margin-bottom:4px; }
+    .day-date { font-size:0.7rem;color:#aaa;text-align:center;margin-bottom:6px; }
+    .plan-recipe-chip { background:var(--green-light);border-radius:8px;padding:6px;font-size:0.75rem;position:relative;cursor:default; }
+    .plan-recipe-chip .pc-emoji { font-size:1.1rem; }
+    .plan-recipe-chip .pc-name { font-weight:600;font-size:0.72rem;line-height:1.2; }
+    .plan-recipe-chip .pc-remove { position:absolute;top:3px;right:4px;background:none;border:none;cursor:pointer;font-size:0.65rem;color:#999;padding:0; }
+    .plan-recipe-chip .pc-remove:hover { color:#e53935; }
+    .add-to-day { border:1.5px dashed #ccc;background:none;border-radius:8px;padding:6px;font-size:0.8rem;color:#aaa;cursor:pointer;width:100%;transition:all .15s;margin-top:auto; }
+    .add-to-day:hover { border-color:var(--green);color:var(--green); }
+    .plan-recipe-picker { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center; }
+    .picker-box { background:white;border-radius:16px;padding:20px;max-width:400px;width:90%;max-height:80vh;overflow-y:auto; }
+    .picker-box h3 { font-size:1rem;font-weight:700;margin-bottom:12px; }
+    .picker-search { width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:0.9rem;margin-bottom:10px;font-family:inherit;outline:none; }
+    .picker-search:focus { border-color:var(--green); }
+    .picker-recipe { display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer;transition:background .1s; }
+    .picker-recipe:hover { background:var(--bg); }
+    .picker-recipe .pr-emoji { font-size:1.4rem; }
+    .picker-recipe .pr-name { font-size:0.9rem;font-weight:600; }
+    .plan-actions { display:flex;gap:10px; }
+    .plan-weekly-summary { background:white;border-radius:12px;padding:16px;margin-top:16px; }
+    .plan-weekly-summary h3 { font-size:0.85rem;font-weight:700;margin-bottom:10px; }
+    .plan-summary-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:8px; }
+    .plan-summary-cell { background:var(--bg);border-radius:8px;padding:10px;text-align:center; }
+    .plan-summary-cell .psv { font-size:1.1rem;font-weight:800;color:var(--green); }
+    .plan-summary-cell .psl { font-size:0.65rem;color:#999;text-transform:uppercase;margin-top:2px; }
+
+    /* ---- WEEKLY NUTRITION (profile) ---- */
+    .week-nutrition { background:white;border-radius:14px;padding:18px;margin-bottom:24px; }
+    .week-nutrition h3 { font-size:0.85rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px; }
+    .wn-grid { display:grid;grid-template-columns:repeat(4,1fr);gap:10px; }
+    .wn-cell { background:var(--bg);border-radius:10px;padding:10px;text-align:center; }
+    .wn-cell .wn-val { font-size:1.1rem;font-weight:800;color:var(--green); }
+    .wn-cell .wn-lbl { font-size:0.65rem;color:#999;text-transform:uppercase;margin-top:2px; }
+
+    /* ---- COOK IT AGAIN ---- */
+    .meal-log-card { display:flex;align-items:center;gap:12px;background:white;border-radius:12px;padding:12px 16px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,.06); }
+    .meal-log-info { flex:1; }
+    .meal-log-info h4 { font-size:0.92rem;font-weight:700;margin:0 0 2px; }
+    .meal-log-info p { font-size:0.78rem;color:#999;margin:0; }
+    .cook-again-btn { border:1.5px solid var(--green);background:white;color:var(--green);border-radius:8px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s; }
+    .cook-again-btn:hover { background:var(--green);color:white; }
+
+    /* ---- RELATED RECIPES ---- */
+    .related-grid { display:flex;gap:10px;overflow-x:auto;padding-bottom:4px; }
+    .related-grid::-webkit-scrollbar { height:3px; }
+    .related-chip { display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--bg);border-radius:12px;cursor:pointer;white-space:nowrap;font-size:0.84rem;font-weight:600;transition:all .15s;flex-shrink:0; }
+    .related-chip:hover { background:var(--green-light);color:var(--green); }
+    .related-chip .rc-emoji { font-size:1.2rem; }
+
+    /* ---- PRINT ---- */
+    .print-btn { padding:6px 14px;border:1.5px solid #ddd;border-radius:8px;background:white;color:#555;font-size:0.82rem;cursor:pointer;transition:all .15s; }
+    .print-btn:hover { border-color:var(--green);color:var(--green); }
+    @media print {
+      #navbar,#modal-overlay .serving-adjuster,.modal-actions,.review-form,.reviews-list,.related-grid,.print-btn,.fav-btn { display:none!important; }
+      #modal-box { box-shadow:none;border-radius:0; }
+      body { background:white; }
+    }
+
+    /* ---- RESPONSIVE ---- */
+    @media(max-width:700px) {
+      .meal-plan-grid { grid-template-columns:repeat(2,1fr); }
+      .wn-grid { grid-template-columns:repeat(2,1fr); }
+      .plan-summary-grid { grid-template-columns:repeat(2,1fr); }
+      .fav-grid { grid-template-columns:1fr 1fr; }
+    }
+
+    
+    .admin-reply-display { background:#f1f8e9;border-left:3px solid var(--green);padding:8px 12px;border-radius:0 8px 8px 0;margin-top:8px;font-size:0.82rem;color:#444;line-height:1.5; }
+    .admin-reply-label { font-weight:700;color:var(--green);display:block;font-size:0.75rem;margin-bottom:2px; }
+
+    </style>
+</head>
+<body>
+
+<!-- ============================= AUTH ============================= -->
+<div id="view-auth">
+  <div class="auth-card">
+    <div class="auth-logo">🥗</div>
+    <h1>Green Table</h1>
+    <p>Wholesome vegetarian recipes</p>
+    <div class="auth-tabs">
+      <button id="tab-signin" class="active" onclick="setAuthMode('signin')">Sign In</button>
+      <button id="tab-signup" onclick="setAuthMode('signup')">Sign Up</button>
+    </div>
+    <div id="field-name" style="display:none">
+      <input type="text" id="auth-name" placeholder="Your name" autocomplete="name" />
+    </div>
+    <input type="email" id="auth-email" placeholder="Email address" autocomplete="email" />
+    <input type="password" id="auth-password" placeholder="Password (min 6 characters)" autocomplete="current-password" />
+    <button class="submit-btn" id="auth-btn" onclick="handleAuth()">Sign In</button>
+    <div class="auth-error" id="auth-error"></div>
+  </div>
+</div>
+
+<!-- ============================= APP ============================= -->
+<div id="app" style="display:none">
+
+  <nav id="navbar">
+    <div class="nav-brand">🥗 Green Table</div>
+    <div class="nav-links">
+      <button class="nav-link active" id="nav-recipes" onclick="showAppView('home')">Recipes</button>
+      <button class="nav-link" id="nav-mealplan" onclick="showAppView('mealplan')">🗓 Meal Plan</button>
+      <button class="nav-link" id="nav-profile" onclick="showAppView('profile')">My Profile</button>
+      <a id="nav-admin" href="admin.html" style="display:none;padding:7px 14px;border-radius:8px;background:rgba(255,255,255,0.15);color:white;font-size:0.88rem;font-weight:600;text-decoration:none">⚙️ Admin</a>
+    </div>
+    <div class="nav-actions">
+      <button class="dark-btn" onclick="toggleDark()" id="dark-btn" title="Toggle dark mode">🌙</button>
+      <button class="cart-btn" onclick="toggleShoppingPanel()">🛒 <span id="cart-badge"></span></button>
+      <button class="signout-btn" onclick="handleSignOut()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- HOME -->
+  <div id="view-home" class="app-view active">
+    <div class="main">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search-input" placeholder="Search recipes, ingredients, or tags..." oninput="handleSearch(this)" />
+        <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+      </div>
+      <div id="recently-viewed-bar"></div>
+      <div id="filter-bar" class="filters"></div>
+      <div id="recipe-grid" class="recipe-grid"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="view-profile" class="app-view">
+    <div class="main">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profile-avatar">?</div>
+        <div>
+          <div class="profile-name" id="profile-name"></div>
+          <div class="profile-sub" id="profile-email"></div>
+        </div>
+      </div>
+      <div id="weekly-nutrition-summary"></div>
+      <div id="favourites-section"></div>
+      <div class="section-header"><h3>🍽 Meals I've Made</h3></div>
+      <div id="meal-log-list"></div>
+    </div>
+  </div>
+  </div>
+
+  <!-- MEAL PLAN -->
+  <div id="view-mealplan" class="app-view">
+    <div class="main">
+      <div class="meal-plan-nav">
+        <button class="week-nav-btn" onclick="shiftWeek(-1)">&#8592;</button>
+        <h2 id="week-label"></h2>
+        <button class="week-nav-btn" onclick="shiftWeek(1)">&#8594;</button>
+      </div>
+      <div class="meal-plan-grid" id="meal-plan-grid"></div>
+      <div class="plan-actions">
+        <button class="btn btn-green" onclick="planToShoppingList()">🛒 Add Week to Shopping List</button>
+      </div>
+      <div class="plan-weekly-summary" id="plan-weekly-summary"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================= MODAL ============================= -->
+<div id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div id="modal-box"></div>
+</div>
+
+<!-- RECIPE PICKER (for meal plan) -->
+<div id="recipe-picker" style="display:none" class="plan-recipe-picker" onclick="if(event.target===this)closeRecipePicker()">
+  <div class="picker-box">
+    <h3>Add recipe to <span id="picker-day-label"></span></h3>
+    <input class="picker-search" type="text" placeholder="Search recipes..." oninput="filterPicker(this.value)" id="picker-search" />
+    <div id="picker-list"></div>
+  </div>
+</div>
+
+<!-- ============================= SHOPPING PANEL ============================= -->
+<div id="shopping-panel">
+  <div class="panel-header">
+    <h3>🛒 Shopping List</h3>
+    <button class="close-panel-btn" onclick="toggleShoppingPanel()">✕</button>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+  <div class="panel-footer" id="panel-footer" style="display:none">
+    <div class="copy-flash" id="copy-flash">✓ Copied to clipboard!</div>
+    <button class="btn btn-green" onclick="copyShoppingList()">📋 Copy to Clipboard</button>
+    <button class="btn btn-outline" onclick="downloadShoppingList()">⬇ Download as Text File</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ================================================================
+//  SUPABASE
+// ================================================================
+const SUPABASE_URL = 'https://qcwtbawegbviazqegpta.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_chTRjscSEK1AJsS5BngDRQ_Cy8ThB34';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ================================================================
+//  RECIPE DATA (loaded from Supabase)
+// ================================================================
+let RECIPES = [];
+let nutrientConfig = {};
+
+const NUTRIENT_DEFS = [
+  {key:'calcium',   label:'Calcium',     unit:'mg',  rni:700,   note:'Supports strong bones and teeth.'},
+  {key:'iron',      label:'Iron',        unit:'mg',  rni:14.8,  note:'Carries oxygen in the blood. Important on plant-based diets.'},
+  {key:'magnesium', label:'Magnesium',   unit:'mg',  rni:270,   note:'Supports sleep, stress, and energy production.'},
+  {key:'potassium', label:'Potassium',   unit:'mg',  rni:3500,  note:'Helps regulate blood pressure.'},
+  {key:'zinc',      label:'Zinc',        unit:'mg',  rni:9.5,   note:'Key for immune function and skin health.'},
+  {key:'selenium',  label:'Selenium',    unit:'µg',  rni:75,    note:'Antioxidant supporting thyroid function.'},
+  {key:'iodine',    label:'Iodine',      unit:'µg',  rni:140,   note:'Critical for thyroid hormones.'},
+  {key:'vitC',      label:'Vitamin C',   unit:'mg',  rni:40,    note:'Boosts immunity and iron absorption.'},
+  {key:'vitD',      label:'Vitamin D',   unit:'µg',  rni:10,    note:'Vital for calcium absorption and immunity.'},
+  {key:'vitB12',    label:'Vitamin B12', unit:'µg',  rni:1.5,   note:'Critical for nerves. Low in plant foods.'},
+  {key:'folate',    label:'Folate',      unit:'µg',  rni:200,   note:'Supports cell growth and DNA repair.'},
+  {key:'vitB6',     label:'Vitamin B6',  unit:'mg',  rni:1.4,   note:'Supports brain function and mood.'},
+  {key:'vitE',      label:'Vitamin E',   unit:'mg',  rni:3,     note:'Antioxidant protecting cells from damage.'},
+];
+
+function mapRecipe(r) {
+  return {
+    id: r.id,
+    emoji: r.emoji || '🥗',
+    color: r.color || '#e8f5e9',
+    name: r.name || '',
+    description: r.description || '',
+    tags: r.tags || [],
+    time: r.time_to_make || '',
+    servings: r.servings || 2,
+    nutrition: r.nutrition || {},
+    macroNotes: r.macro_notes || {},
+    healthNotes: r.health_notes || [],
+    ingredients: r.ingredients || [],
+    steps: r.steps || []
+  };
+}
+
+async function loadNutrientConfig() {
+  const { data } = await db.from('app_settings').select('value').eq('key','nutrient_display').single();
+  nutrientConfig = (data && data.value) ? data.value : {};
+}
+
+async function loadRecipes() {
+  const { data } = await db.from('recipes').select('*').eq('published', true).order('id');
+  RECIPES = (data || []).map(mapRecipe);
+}
+
+// LEGACY PLACEHOLDER — replaced by Supabase data above
+const _RECIPES_LEGACY = [
+  {
+    id: 1, emoji: "🥣", color: "#fff8e1",
+    name: "Overnight Oats with Kiwi & Chia",
+    description: "A creamy, no-cook breakfast packed with slow-release energy, omega-3s, and gut-friendly fibre.",
+    tags: ["Breakfast", "High Fibre", "Quick Prep"],
+    time: "5 min + overnight", servings: 2,
+    nutrition: { calories: 380, protein: 14, carbs: 52, fat: 12, fibre: 11, sugar: 18 },
+    macroNotes: {
+      calories: "Keeps you full until lunch",
+      protein: "Supports muscle repair and reduces hunger",
+      fibre: "Feeds good gut bacteria and aids digestion",
+      fat: "Mostly healthy unsaturated fats from chia and oats"
+    },
+    healthNotes: [
+      { title: "🥝 Kiwi & Gut Health", body: "Kiwis contain actinidin, a unique enzyme that helps break down protein in your stomach. They're also rich in prebiotic fibre which feeds beneficial gut bacteria — reducing bloating and supporting your immune system." },
+      { title: "🌾 Oats & Sustained Energy", body: "Oats are rich in beta-glucan, a soluble fibre that slows digestion and keeps blood sugar stable. Steady energy rather than a spike-and-crash — one of the best breakfast choices for focus and mood throughout the morning." },
+      { title: "🌱 Chia Seeds & Omega-3", body: "Chia seeds are one of the best plant-based sources of omega-3 fatty acids, supporting brain health and reducing inflammation. They also form a gel when soaked, helping you feel fuller for longer." }
+    ],
+    ingredients: [
+      { qty: 100, unit: "g", item: "rolled oats" },
+      { qty: 250, unit: "ml", item: "oat milk (or any plant milk)" },
+      { qty: 2, unit: "tbsp", item: "chia seeds" },
+      { qty: 1, unit: "tbsp", item: "maple syrup" },
+      { qty: 1, unit: "tsp", item: "vanilla extract" },
+      { qty: 2, unit: null, item: "kiwis, peeled and sliced" },
+      { qty: null, unit: "handful", item: "mixed berries" },
+      { qty: 2, unit: "tbsp", item: "pumpkin seeds" }
+    ],
+    steps: [
+      "Mix oats, chia seeds, oat milk, maple syrup, and vanilla in a jar or bowl.",
+      "Stir well, making sure chia seeds are evenly distributed.",
+      "Cover and refrigerate overnight (or at least 4 hours).",
+      "In the morning, stir well and add a splash more milk if too thick.",
+      "Top with sliced kiwi, mixed berries, and pumpkin seeds. Serve cold."
+    ]
+  },
+  {
+    id: 2, emoji: "🍲", color: "#fbe9e7",
+    name: "Red Lentil & Spinach Dal",
+    description: "A warming, protein-rich dal with anti-inflammatory spices. Comforting, filling, and ready in 30 minutes.",
+    tags: ["Dinner", "High Protein", "High Fibre", "Gluten Free"],
+    time: "30 min", servings: 4,
+    nutrition: { calories: 310, protein: 18, carbs: 44, fat: 6, fibre: 14, sugar: 6 },
+    macroNotes: {
+      calories: "Low calorie but very filling thanks to high fibre",
+      protein: "Great plant-based protein — lentils are one of the best sources",
+      fibre: "14g is more than half your daily recommended intake",
+      fat: "Very low fat, mostly from olive oil"
+    },
+    healthNotes: [
+      { title: "🫘 Lentils & Heart Health", body: "Red lentils are high in soluble fibre, which binds to cholesterol in the digestive system and helps remove it. Regular lentil consumption is linked to lower LDL cholesterol and reduced risk of heart disease." },
+      { title: "🌿 Turmeric & Inflammation", body: "Curcumin in turmeric is one of the most studied natural anti-inflammatories. Pairing turmeric with black pepper (as in this recipe) increases curcumin absorption by up to 2000%." },
+      { title: "🍃 Spinach & Iron", body: "Spinach is a good plant-based source of iron, essential for transporting oxygen around your body. Eating it alongside vitamin C-rich foods like the tomatoes in this dish significantly boosts absorption." }
+    ],
+    ingredients: [
+      { qty: 300, unit: "g", item: "red lentils, rinsed" },
+      { qty: 1000, unit: "ml", item: "vegetable stock" },
+      { qty: 400, unit: "g", item: "chopped tomatoes (1 can)" },
+      { qty: 200, unit: "g", item: "fresh spinach" },
+      { qty: 1, unit: null, item: "large onion, diced" },
+      { qty: 4, unit: null, item: "garlic cloves, minced" },
+      { qty: 1, unit: "tbsp", item: "fresh ginger, grated" },
+      { qty: 2, unit: "tsp", item: "turmeric" },
+      { qty: 2, unit: "tsp", item: "cumin" },
+      { qty: 1, unit: "tsp", item: "garam masala" },
+      { qty: 0.5, unit: "tsp", item: "black pepper" },
+      { qty: 2, unit: "tbsp", item: "olive oil" },
+      { qty: null, unit: "to taste", item: "salt" },
+      { qty: null, unit: "to serve", item: "fresh coriander and lemon wedges" }
+    ],
+    steps: [
+      "Heat olive oil in a large pan over medium heat. Add onion and cook 5–6 minutes until softened.",
+      "Add garlic and ginger, cook 2 more minutes until fragrant.",
+      "Stir in turmeric, cumin, garam masala, and black pepper. Cook 1 minute.",
+      "Add rinsed lentils, chopped tomatoes, and vegetable stock. Stir well.",
+      "Bring to a boil, then reduce heat and simmer 20 minutes until lentils are soft.",
+      "Stir in spinach and cook 2–3 minutes until wilted.",
+      "Season with salt, squeeze in lemon juice, and serve topped with fresh coriander."
+    ]
+  },
+  {
+    id: 3, emoji: "🥗", color: "#e8f5e9",
+    name: "Roasted Chickpea & Quinoa Bowl",
+    description: "A nutrient-dense power bowl with crispy chickpeas, fluffy quinoa, and a tahini lemon dressing.",
+    tags: ["Lunch", "High Protein", "Gluten Free"],
+    time: "40 min", servings: 2,
+    nutrition: { calories: 520, protein: 22, carbs: 58, fat: 20, fibre: 12, sugar: 8 },
+    macroNotes: {
+      calories: "A satisfying, well-balanced full meal",
+      protein: "Exceptional for plant-based — complete protein from quinoa plus chickpeas",
+      fibre: "Supports digestion and keeps you full",
+      fat: "Healthy fats from tahini and olive oil — good for heart and brain"
+    },
+    healthNotes: [
+      { title: "🫘 Chickpeas & Blood Sugar", body: "Chickpeas have a low glycaemic index, meaning they release energy slowly without causing blood sugar spikes. Rich in resistant starch which feeds healthy gut bacteria and may reduce type 2 diabetes risk." },
+      { title: "🌾 Quinoa — A Complete Protein", body: "Quinoa is one of the very few plant foods containing all nine essential amino acids, making it a complete protein like meat or eggs. It's also rich in magnesium, which supports muscle function, sleep quality, and stress regulation." },
+      { title: "🫒 Tahini & Bone Health", body: "Tahini is an excellent source of calcium and zinc. Calcium is essential for bone density, while zinc plays a key role in immune function. It also contains lignans — plant compounds linked to reduced inflammation." }
+    ],
+    ingredients: [
+      { qty: 200, unit: "g", item: "quinoa, rinsed" },
+      { qty: 400, unit: "g", item: "chickpeas (1 can), drained and dried" },
+      { qty: 2, unit: "tbsp", item: "olive oil" },
+      { qty: 1, unit: "tsp", item: "smoked paprika" },
+      { qty: 1, unit: "tsp", item: "cumin" },
+      { qty: 0.5, unit: "tsp", item: "garlic powder" },
+      { qty: 100, unit: "g", item: "cherry tomatoes, halved" },
+      { qty: 1, unit: null, item: "cucumber, diced" },
+      { qty: 1, unit: null, item: "large avocado, sliced" },
+      { qty: 50, unit: "g", item: "rocket or mixed leaves" },
+      { qty: 3, unit: "tbsp", item: "tahini" },
+      { qty: 2, unit: "tbsp", item: "lemon juice" },
+      { qty: 1, unit: "tbsp", item: "water (for dressing)" },
+      { qty: 1, unit: null, item: "garlic clove, minced (dressing)" },
+      { qty: null, unit: "to taste", item: "salt & pepper" }
+    ],
+    steps: [
+      "Preheat oven to 200°C. Toss dried chickpeas with olive oil, paprika, cumin, garlic powder, salt and pepper.",
+      "Spread chickpeas on a baking tray in a single layer. Roast 25–30 minutes, shaking halfway, until crispy.",
+      "Cook quinoa: add to a pan with 400ml water and a pinch of salt. Bring to boil, simmer covered 15 minutes, then fluff.",
+      "Make dressing: whisk tahini, lemon juice, water, garlic, and salt until smooth and pourable.",
+      "Assemble bowls: quinoa base, then arrange tomatoes, cucumber, avocado, and leaves.",
+      "Top with roasted chickpeas and drizzle generously with tahini dressing. Serve immediately."
+    ]
+  },
+  {
+    id: 4, emoji: "🍌", color: "#f3e5f5",
+    name: "Banana & Walnut Bliss Balls",
+    description: "No-bake energy balls made with wholefood ingredients. Perfect snack or pre-workout boost.",
+    tags: ["Snack", "No Bake", "Quick Prep"],
+    time: "15 min", servings: 12,
+    nutrition: { calories: 145, protein: 4, carbs: 16, fat: 8, fibre: 3, sugar: 8 },
+    macroNotes: {
+      calories: "Per ball — a smart, portion-controlled snack",
+      protein: "Helps stabilise blood sugar between meals",
+      fibre: "Slows sugar absorption for steady energy",
+      fat: "Mostly healthy fats from walnuts and almond butter"
+    },
+    healthNotes: [
+      { title: "🍌 Bananas & Mood", body: "Bananas contain tryptophan, which your body converts to serotonin — your feel-good neurotransmitter. They're also rich in vitamin B6, which supports the nervous system and helps regulate mood naturally." },
+      { title: "🌰 Walnuts & Brain Health", body: "Walnuts have one of the highest concentrations of omega-3 fatty acids of any nut. These fats are critical for brain cell structure and communication, linked to better memory and lower risk of cognitive decline." },
+      { title: "📅 Medjool Dates & Natural Sweetness", body: "Dates provide natural sweetness along with potassium, magnesium, and antioxidants — unlike refined sugar which offers zero nutritional value. The fibre in dates also slows sugar absorption, preventing blood sugar spikes." }
+    ],
+    ingredients: [
+      { qty: 1, unit: null, item: "large ripe banana" },
+      { qty: 150, unit: "g", item: "medjool dates, pitted" },
+      { qty: 100, unit: "g", item: "rolled oats" },
+      { qty: 80, unit: "g", item: "walnuts" },
+      { qty: 2, unit: "tbsp", item: "almond butter" },
+      { qty: 2, unit: "tbsp", item: "cacao powder" },
+      { qty: 1, unit: "tbsp", item: "chia seeds" },
+      { qty: null, unit: "pinch", item: "sea salt" },
+      { qty: null, unit: "optional", item: "desiccated coconut for rolling" }
+    ],
+    steps: [
+      "Add walnuts to a food processor and pulse until roughly chopped. Remove and set aside.",
+      "Add dates to the processor and blend until they form a sticky paste.",
+      "Add banana, almond butter, cacao powder, and sea salt. Blend until combined.",
+      "Add oats, chia seeds, and reserved walnuts. Pulse until mixture comes together.",
+      "If too sticky, refrigerate 15 minutes. Then roll into 12 balls (about 1 tbsp each).",
+      "Roll in desiccated coconut if desired. Store in the fridge for up to 1 week."
+    ]
+  }
+]; // end legacy placeholder
+
+// ================================================================
+//  STATE
+// ================================================================
+let currentUser = null;
+let shoppingItems = [];
+let checkedIngredients = new Set();
+let favourites = [];
+let recentlyViewed = JSON.parse(localStorage.getItem('rv') || '[]');
+let darkMode = localStorage.getItem('darkMode') === 'true';
+let mealPlanWeekOffset = 0;
+let mealPlan = {};
+let pickerTargetDate = null;
+if (darkMode) document.body.classList.add('dark');
+let authMode = 'signin';
+let openRecipeId = null;
+let modalServings = null;
+let selectedRating = 0;
+
+// ================================================================
+//  INIT
+// ================================================================
+db.auth.onAuthStateChange(async (event, session) => {
+  if (session?.user) {
+    currentUser = session.user;
+    document.getElementById('view-auth').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await loadNutrientConfig();
+    await loadRecipes();
+    await loadShoppingList();
+    await loadFavourites();
+    await loadMealPlan();
+    renderFilters();
+    renderGrid(RECIPES);
+    renderRecentlyViewed();
+    showAppView('home');
+    // Show admin link if user is admin
+    const { data: profile } = await db.from('profiles').select('is_admin').eq('id', currentUser.id).single();
+    if (profile?.is_admin) document.getElementById('nav-admin').style.display = 'inline-block';
+  } else {
+    currentUser = null;
+    document.getElementById('view-auth').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// ================================================================
+//  AUTH
+// ================================================================
+function setAuthMode(mode) {
+  authMode = mode;
+  document.getElementById('tab-signin').classList.toggle('active', mode === 'signin');
+  document.getElementById('tab-signup').classList.toggle('active', mode === 'signup');
+  document.getElementById('field-name').style.display = mode === 'signup' ? 'block' : 'none';
+  document.getElementById('auth-btn').textContent = mode === 'signin' ? 'Sign In' : 'Create Account';
+  document.getElementById('auth-error').classList.remove('show');
+}
+
+async function handleAuth() {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const name = document.getElementById('auth-name').value.trim();
+  const btn = document.getElementById('auth-btn');
+  const errEl = document.getElementById('auth-error');
+
+  if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
+  btn.disabled = true;
+  btn.textContent = authMode === 'signin' ? 'Signing in...' : 'Creating account...';
+  errEl.classList.remove('show');
+
+  try {
+    if (authMode === 'signup') {
+      const { error } = await db.auth.signUp({
+        email, password,
+        options: { data: { username: name || email.split('@')[0], full_name: name } }
+      });
+      if (error) throw error;
+    } else {
+      const { error } = await db.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+    }
+  } catch (err) {
+    showAuthError(err.message || 'Something went wrong. Please try again.');
+    btn.disabled = false;
+    btn.textContent = authMode === 'signin' ? 'Sign In' : 'Create Account';
+  }
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+async function handleSignOut() {
+  await db.auth.signOut();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('view-auth').style.display !== 'none') handleAuth();
+  if (e.key === 'Escape') closeModal();
+});
+
+// ================================================================
+//  NAVIGATION
+// ================================================================
+function showAppView(view) {
+  document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  const navMap = {home:'nav-recipes', profile:'nav-profile', mealplan:'nav-mealplan'};
+  const navEl = document.getElementById(navMap[view] || 'nav-recipes');
+  if (navEl) navEl.classList.add('active');
+  if (view === 'profile') loadProfile();
+  if (view === 'mealplan') renderMealPlanView();
+}
+
+// ================================================================
+//  RECIPE GRID
+// ================================================================
+function renderFilters() {
+  const tags = [...new Set(RECIPES.flatMap(r => r.tags))];
+  document.getElementById('filter-bar').innerHTML =
+    `<button class="filter-btn active" onclick="filterBy(this,'all')">All Recipes</button>` +
+    tags.map(t => `<button class="filter-btn" onclick="filterBy(this,'${t}')">${t}</button>`).join('');
+}
+
+function filterBy(btn, tag) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGrid(tag === 'all' ? RECIPES : RECIPES.filter(r => r.tags.includes(tag)));
+}
+
+function renderGrid(list) {
+  const grid = document.getElementById('recipe-grid');
+  if (!list.length) { grid.innerHTML = '<div class="empty-state"><span class="icon">🔍</span>No recipes found.</div>'; return; }
+  grid.innerHTML = list.map(r => {
+    const inList = shoppingItems.some(s => s.recipe_id === r.id);
+    const isFav = favourites.includes(r.id);
+    const badges = getNutrientBadges(r);
+    return `
+    <div class="recipe-card" onclick="openRecipe(${r.id})">
+      <div class="card-hero" style="background:${r.color}">${r.emoji}</div>
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+          <h3 style="margin:0">${r.name}</h3>
+          <button class="fav-btn" onclick="event.stopPropagation();toggleFavourite(${r.id})" title="${isFav ? 'Remove from favourites' : 'Add to favourites'}">${isFav ? '❤️' : '🤍'}</button>
+        </div>
+        <p class="card-desc">${r.description}</p>
+        <div class="card-tags">${r.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+        ${badges.length ? `<div class="card-nutrient-badges">${badges.map(b => `<span class="nbadge ${b.cls}">${b.label}</span>`).join('')}</div>` : ''}
+        <div class="card-macros">
+          <div class="macro"><div class="val">${r.nutrition.calories}</div><div class="lbl">kcal</div></div>
+          <div class="macro"><div class="val">${r.nutrition.protein}g</div><div class="lbl">Protein</div></div>
+          <div class="macro"><div class="val">${r.nutrition.fibre}g</div><div class="lbl">Fibre</div></div>
+          <div class="macro"><div class="val">${r.nutrition.fat}g</div><div class="lbl">Fat</div></div>
+        </div>
+        <div class="card-footer">
+          <span class="card-meta">⏱ ${r.time} · ${r.servings} servings</span>
+          <button class="list-btn ${inList ? 'added' : ''}" onclick="event.stopPropagation(); quickToggleList(${r.id})">
+            ${inList ? '✓ In List' : '+ List'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+//  RECIPE MODAL
+// ================================================================
+function openRecipe(id) {
+  openRecipeId = id;
+  const r = RECIPES.find(x => x.id === id);
+  modalServings = r.servings;
+  selectedRating = 0;
+  // Track recently viewed
+  recentlyViewed = [id, ...recentlyViewed.filter(x => x !== id)].slice(0, 6);
+  localStorage.setItem('rv', JSON.stringify(recentlyViewed));
+  renderRecentlyViewed();
+  renderModal();
+  document.getElementById('modal-overlay').classList.add('open');
+  loadReviews(id);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  openRecipeId = null;
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function renderModal() {
+  const r = RECIPES.find(x => x.id === openRecipeId);
+  const scale = modalServings / r.servings;
+  const inList = shoppingItems.some(s => s.recipe_id === r.id);
+
+  const isFav = favourites.includes(r.id);
+  document.getElementById('modal-box').innerHTML = `
+    <div class="modal-hero" style="background:${r.color}">${r.emoji}</div>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <h2 style="margin:0">${r.name}</h2>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="fav-btn" onclick="toggleFavourite(${r.id});renderModal()" title="Favourite">${isFav ? '❤️' : '🤍'}</button>
+          <button class="print-btn" onclick="window.print()">🖨 Print</button>
+        </div>
+      </div>
+      <p class="modal-desc">${r.description}</p>
+
+      <div class="serving-adjuster">
+        <label>Adjust servings</label>
+        <div class="serving-controls">
+          <button class="serving-btn" onclick="adjustServings(-1)">−</button>
+          <span class="serving-num">${modalServings}</span>
+          <span class="serving-label">serving${modalServings !== 1 ? 's' : ''}</span>
+          <button class="serving-btn" onclick="adjustServings(1)">+</button>
+        </div>
+      </div>
+
+      <div class="modal-macros">
+        ${['calories','protein','carbs','fat','fibre','sugar'].filter(k => r.nutrition[k] != null).map(k => `
+          <div class="modal-macro">
+            <div class="val">${r.nutrition[k]}${k !== 'calories' ? 'g' : ''}</div>
+            <div class="lbl">${k.charAt(0).toUpperCase() + k.slice(1)}</div>
+            ${r.macroNotes[k] ? `<div class="note">${r.macroNotes[k]}</div>` : ''}
+          </div>`).join('')}
+      </div>
+
+      ${(() => {
+        const enabled = NUTRIENT_DEFS.filter(d => nutrientConfig[d.key] && r.nutrition[d.key] != null);
+        if (!enabled.length) return '';
+        return `
+          <div class="section-title">Key Nutrients per serving</div>
+          <div class="nutrients-grid">
+            ${enabled.map(d => {
+              const val = parseFloat(r.nutrition[d.key] || 0);
+              const pct = Math.min(100, Math.round((val / d.rni) * 100));
+              return `<div class="nutrient-card">
+                <div class="nc-label">${d.label}</div>
+                <div class="nc-val">${val % 1 === 0 ? val : val.toFixed(1)}<span style="font-size:.7em;font-weight:500;color:#888"> ${d.unit}</span></div>
+                <div class="nc-bar-wrap"><div class="nc-bar" style="width:${pct}%"></div></div>
+                <div class="nc-rni">${pct}% of daily RNI</div>
+                <div class="nc-note">${d.note}</div>
+              </div>`;
+            }).join('')}
+          </div>`;
+      })()}
+
+      <div class="section-title">Why this meal is good for you</div>
+      <div class="health-notes">
+        ${r.healthNotes.map(n => `
+          <div class="health-note">
+            <div class="hn-title">${n.title}</div>
+            <div class="hn-body">${n.body}</div>
+          </div>`).join('')}
+      </div>
+
+      <div class="section-title">Ingredients ${modalServings !== r.servings ? `<span style="font-weight:400;color:#999;font-size:0.72rem">(scaled for ${modalServings})</span>` : ''}</div>
+      <ul class="ing-list">
+        ${r.ingredients.map(i => `
+          <li>
+            <span class="ing-amt">${fmtIng(i, scale)}</span>
+            <span>${i.item}</span>
+          </li>`).join('')}
+      </ul>
+
+      <div class="section-title">Method</div>
+      <ol class="steps-list">
+        ${r.steps.map((s, i) => `<li><span class="step-num">${i+1}</span><span>${s}</span></li>`).join('')}
+      </ol>
+
+      ${(() => {
+        const related = RECIPES.filter(x => x.id !== r.id && x.tags.some(t => r.tags.includes(t))).slice(0, 6);
+        if (!related.length) return '';
+        return `<div class="section-title">You might also like</div>
+          <div class="related-grid">
+            ${related.map(x => `<div class="related-chip" onclick="closeModal();setTimeout(()=>openRecipe(${x.id}),100)">
+              <span class="rc-emoji">${x.emoji}</span><span>${x.name}</span>
+            </div>`).join('')}
+          </div>`;
+      })()}
+
+      <div class="section-title">Reviews</div>
+      <div class="review-form">
+        <p>Leave a review</p>
+        <div class="star-input" id="star-input">
+          ${[1,2,3,4,5].map(n => `<span onclick="setRating(${n})" data-star="${n}">★</span>`).join('')}
+        </div>
+        <textarea id="review-text" rows="3" placeholder="Share your thoughts on this recipe..."></textarea>
+        <div style="margin-top:10px;text-align:right">
+          <button class="btn btn-green btn-sm" onclick="submitReview()">Post Review</button>
+        </div>
+      </div>
+      <div id="reviews-list"><div class="loading">Loading reviews...</div></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <div class="modal-footer-actions">
+        <button class="btn btn-amber" onclick="logMeal()">🍽 Mark as Made</button>
+        <button class="btn btn-green" id="modal-list-btn" onclick="toggleListFromModal()">
+          ${inList ? '✓ In Shopping List' : '+ Shopping List'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function adjustServings(delta) {
+  modalServings = Math.max(1, Math.min(20, modalServings + delta));
+  renderModal();
+  loadReviews(openRecipeId);
+}
+
+// ================================================================
+//  INGREDIENT FORMATTING
+// ================================================================
+function fmtQty(n) {
+  if (n === null || n === undefined) return '';
+  const fracs = [[0.125,'⅛'],[0.25,'¼'],[0.33,'⅓'],[0.5,'½'],[0.67,'⅔'],[0.75,'¾']];
+  const whole = Math.floor(n);
+  const dec = n - whole;
+  let frac = '';
+  for (const [v, s] of fracs) { if (Math.abs(dec - v) < 0.07) { frac = s; break; } }
+  if (whole > 0 && frac) return `${whole}${frac}`;
+  if (frac) return frac;
+  if (n % 1 === 0) return n.toString();
+  return n < 10 ? n.toFixed(1).replace(/\.0$/, '') : Math.round(n).toString();
+}
+
+function fmtIng(ing, scale) {
+  if (ing.qty === null) return ing.unit || '';
+  const scaled = ing.qty * scale;
+  const q = fmtQty(scaled);
+  const attached = ['g','kg','ml','l'];
+  if (!ing.unit) return q;
+  return attached.includes(ing.unit) ? `${q}${ing.unit}` : `${q} ${ing.unit}`;
+}
+
+// ================================================================
+//  SHOPPING LIST
+// ================================================================
+async function loadShoppingList() {
+  const { data } = await db.from('shopping_list').select('*').eq('user_id', currentUser.id);
+  shoppingItems = data || [];
+  updateCartBadge();
+}
+
+function updateCartBadge() {
+  const b = document.getElementById('cart-badge');
+  b.textContent = shoppingItems.length > 0 ? `(${shoppingItems.length})` : '';
+}
+
+async function quickToggleList(recipeId) {
+  const inList = shoppingItems.some(s => s.recipe_id === recipeId);
+  const r = RECIPES.find(x => x.id === recipeId);
+  if (inList) {
+    await db.from('shopping_list').delete().eq('user_id', currentUser.id).eq('recipe_id', recipeId);
+    shoppingItems = shoppingItems.filter(s => s.recipe_id !== recipeId);
+    toast(`Removed from list`);
+  } else {
+    const { data } = await db.from('shopping_list').upsert({
+      user_id: currentUser.id, recipe_id: recipeId, recipe_name: r.name,
+      recipe_emoji: r.emoji, servings: r.servings
+    }, { onConflict: 'user_id,recipe_id' }).select().single();
+    if (data) shoppingItems.push(data);
+    toast(`${r.emoji} Added to list`);
+  }
+  updateCartBadge();
+  renderGrid(RECIPES);
+}
+
+async function removeFromList(recipeId) {
+  await db.from('shopping_list').delete().eq('user_id', currentUser.id).eq('recipe_id', recipeId);
+  shoppingItems = shoppingItems.filter(s => s.recipe_id !== recipeId);
+  updateCartBadge();
+  renderPanel();
+  renderGrid(RECIPES);
+}
+
+async function updateListServings(recipeId, delta) {
+  const item = shoppingItems.find(s => s.recipe_id === recipeId);
+  if (!item) return;
+  const newServings = Math.max(1, Math.min(20, item.servings + delta));
+  await db.from('shopping_list').update({ servings: newServings }).eq('user_id', currentUser.id).eq('recipe_id', recipeId);
+  item.servings = newServings;
+  renderPanel();
+}
+
+async function toggleListFromModal() {
+  const inList = shoppingItems.some(s => s.recipe_id === openRecipeId);
+  const r = RECIPES.find(x => x.id === openRecipeId);
+  if (inList) {
+    await db.from('shopping_list').delete().eq('user_id', currentUser.id).eq('recipe_id', openRecipeId);
+    shoppingItems = shoppingItems.filter(s => s.recipe_id !== openRecipeId);
+    toast('Removed from shopping list');
+  } else {
+    const { data } = await db.from('shopping_list').upsert({
+      user_id: currentUser.id, recipe_id: openRecipeId, recipe_name: r.name,
+      recipe_emoji: r.emoji, servings: modalServings
+    }, { onConflict: 'user_id,recipe_id' }).select().single();
+    if (data) shoppingItems.push(data);
+    toast(`${r.emoji} Added to shopping list`);
+  }
+  updateCartBadge();
+  renderGrid(RECIPES);
+  const btn = document.getElementById('modal-list-btn');
+  if (btn) {
+    const nowIn = shoppingItems.some(s => s.recipe_id === openRecipeId);
+    btn.textContent = nowIn ? '✓ In Shopping List' : '+ Shopping List';
+  }
+}
+
+
+function buildConsolidatedList() {
+  const map = {};
+  shoppingItems.forEach(function(item) {
+    var r = RECIPES.find(function(x) { return x.id === item.recipe_id; });
+    if (!r) return;
+    var scale = item.servings / r.servings;
+    r.ingredients.forEach(function(ing) {
+      var key = ing.item.toLowerCase().trim();
+      if (!map[key]) map[key] = { name: ing.item, byUnit: {} };
+      var unit = (ing.unit || '').trim();
+      if (ing.qty != null) {
+        map[key].byUnit[unit] = (map[key].byUnit[unit] || 0) + (ing.qty * scale);
+      } else {
+        if (map[key].byUnit['__noqty'] === undefined) map[key].byUnit['__noqty'] = true;
+      }
+    });
+  });
+  var attached = ['g','kg','ml','l'];
+  return Object.values(map).map(function(d) {
+    var parts = Object.entries(d.byUnit)
+      .filter(function(e) { return e[0] !== '__noqty'; })
+      .map(function(e) {
+        var unit = e[0], total = e[1];
+        var q = fmtQty(total);
+        if (!unit) return q;
+        return attached.includes(unit) ? q + unit : q + ' ' + unit;
+      });
+    return { name: d.name, amount: parts.join(' + ') };
+  }).sort(function(a, b) { return a.name.localeCompare(b.name); });
+}
+
+function toggleIngCheck(key) {
+  if (checkedIngredients.has(key)) checkedIngredients.delete(key);
+  else checkedIngredients.add(key);
+  renderPanel();
+}
+
+// ================================================================
+//  SHOPPING PANEL
+// ================================================================
+function toggleShoppingPanel() {
+  const p = document.getElementById('shopping-panel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) renderPanel();
+}
+
+function renderPanel() {
+  var body = document.getElementById('panel-body');
+  var footer = document.getElementById('panel-footer');
+  if (!shoppingItems.length) {
+    body.innerHTML = '<div class="panel-empty"><span class="icon">\u{1F6D2}</span>No recipes added yet.<br>Click \u201c+ List\u201d on any recipe.</div>';
+    footer.style.display = 'none';
+    return;
+  }
+  footer.style.display = 'flex';
+  var consolidated = buildConsolidatedList();
+
+  var recipesHtml = '<div class="panel-recipes-bar"><div class="panel-section-label">Recipes</div>';
+  shoppingItems.forEach(function(item) {
+    var r = RECIPES.find(function(x) { return x.id === item.recipe_id; });
+    if (!r) return;
+    recipesHtml += '<div class="panel-recipe-row">' +
+      '<span class="panel-recipe-row-name">' + r.emoji + ' ' + r.name + '</span>' +
+      '<div class="panel-recipe-row-controls">' +
+        '<div class="p-srv-sm">' +
+          '<button onclick="updateListServings(' + r.id + ',-1)">\u2212</button>' +
+          '<span>' + item.servings + '</span>' +
+          '<button onclick="updateListServings(' + r.id + ',1)">+</button>' +
+        '</div>' +
+        '<button class="p-rm" onclick="removeFromList(' + r.id + ')" title="Remove">\u2715</button>' +
+      '</div>' +
+    '</div>';
+  });
+  recipesHtml += '</div>';
+
+  var ingsHtml = '<div class="panel-section-label">All ingredients (' + consolidated.length + ')</div><ul class="panel-ing-list">';
+  consolidated.forEach(function(d) {
+    var key = d.name.toLowerCase().trim();
+    var safeKey = key.replace(/'/g, "\\'");
+    var ticked = checkedIngredients.has(key);
+    ingsHtml += '<li class="panel-ing-row' + (ticked ? ' ticked' : '') + '" onclick="toggleIngCheck(\'' + safeKey + '\')">' +
+      '<div class="p-cb">' + (ticked ? '\u2713' : '') + '</div>' +
+      '<span class="p-ing-name">' + d.name + '</span>' +
+      (d.amount ? '<span class="p-ing-amt">' + d.amount + '</span>' : '') +
+    '</li>';
+  });
+  ingsHtml += '</ul>';
+
+  body.innerHTML = recipesHtml + ingsHtml;
+}
+
+function getListText() {
+  var recipeNames = shoppingItems.map(function(item) {
+    var r = RECIPES.find(function(x) { return x.id === item.recipe_id; });
+    return r ? r.emoji + ' ' + r.name + ' (' + item.servings + ' serving' + (item.servings !== 1 ? 's' : '') + ')' : '';
+  }).filter(Boolean).join(', ');
+
+  var consolidated = buildConsolidatedList();
+  var lines = consolidated.map(function(d) {
+    return d.amount ? ('  \u2022 ' + d.amount + ' ' + d.name) : ('  \u2022 ' + d.name);
+  }).join('\n');
+
+  return 'SHOPPING LIST\nRecipes: ' + recipeNames + '\n\n' + lines;
+}
+
+function copyShoppingList() {
+  navigator.clipboard.writeText(getListText()).then(() => {
+    const el = document.getElementById('copy-flash');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 2500);
+  });
+}
+
+function downloadShoppingList() {
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([getListText()], { type: 'text/plain' })),
+    download: 'shopping-list.txt'
+  });
+  a.click();
+}
+
+// ================================================================
+//  REVIEWS
+// ================================================================
+function setRating(n) {
+  selectedRating = n;
+  document.querySelectorAll('#star-input span').forEach(s => {
+    s.classList.toggle('selected', parseInt(s.dataset.star) <= n);
+  });
+}
+
+async function loadReviews(recipeId) {
+  const el = document.getElementById('reviews-list');
+  if (!el) return;
+  const { data } = await db.from('reviews').select('*').eq('recipe_id', recipeId).order('created_at', { ascending: false });
+  if (!data?.length) { el.innerHTML = '<div class="no-reviews">No reviews yet — be the first!</div>'; return; }
+  el.innerHTML = data.map(rv => `
+    <div class="review-item">
+      <div class="review-header">
+        <span class="review-author">${rv.username || 'Anonymous'}</span>
+        <span class="review-date">${new Date(rv.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span>
+      </div>
+      <div class="stars">${'★'.repeat(rv.rating)}${'☆'.repeat(5-rv.rating)}</div>
+      ${rv.comment ? `<div class="review-text">${rv.comment}</div>` : ''}
+      ${rv.admin_reply ? `<div class="admin-reply-display"><span class="admin-reply-label">🌿 Green Table replied:</span> ${rv.admin_reply}</div>` : ''}
+    </div>`).join('');
+}
+
+async function submitReview() {
+  if (!selectedRating) { toast('Please select a star rating first'); return; }
+  const comment = document.getElementById('review-text')?.value.trim();
+  const meta = currentUser.user_metadata;
+  const username = meta?.full_name || meta?.username || currentUser.email.split('@')[0];
+  const { error } = await db.from('reviews').insert({
+    recipe_id: openRecipeId, user_id: currentUser.id,
+    username, rating: selectedRating, comment: comment || null
+  });
+  if (error) { toast('Could not post review — try again'); return; }
+  toast('✓ Review posted!');
+  if (document.getElementById('review-text')) document.getElementById('review-text').value = '';
+  selectedRating = 0;
+  document.querySelectorAll('#star-input span').forEach(s => s.classList.remove('selected'));
+  loadReviews(openRecipeId);
+}
+
+// ================================================================
+//  MEAL LOG
+// ================================================================
+async function logMeal() {
+  const r = RECIPES.find(x => x.id === openRecipeId);
+  const { error } = await db.from('meal_logs').insert({
+    user_id: currentUser.id, recipe_id: openRecipeId,
+    recipe_name: r.name, recipe_emoji: r.emoji, servings: modalServings
+  });
+  if (!error) toast(`🍽 Logged "${r.name}"!`);
+  else toast('Could not log meal — try again');
+}
+
+async function loadProfile() {
+  const meta = currentUser.user_metadata;
+  const name = meta?.full_name || meta?.username || currentUser.email.split('@')[0];
+  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-email').textContent = currentUser.email;
+  document.getElementById('profile-avatar').textContent = name.charAt(0).toUpperCase();
+
+  // Weekly nutrition summary
+  const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const { data: logs } = await db.from('meal_logs').select('*').eq('user_id', currentUser.id)
+    .gte('made_at', sevenDaysAgo.toISOString()).order('made_at', { ascending: false });
+  renderWeeklyNutrition(logs || []);
+
+  // Favourites section
+  renderFavouritesSection();
+
+  // Meal log
+  const logEl = document.getElementById('meal-log-list');
+  logEl.innerHTML = '<div class="loading">Loading...</div>';
+  const { data } = await db.from('meal_logs').select('*').eq('user_id', currentUser.id).order('made_at', { ascending: false });
+  if (!data?.length) {
+    logEl.innerHTML = `<div class="empty-state"><span class="icon">🍽</span>No meals logged yet.<br>Open a recipe and click "Mark as Made".</div>`;
+    return;
+  }
+  logEl.innerHTML = data.map(log => `
+    <div class="meal-log-card">
+      <span class="meal-log-emoji">${log.recipe_emoji || '🍽'}</span>
+      <div class="meal-log-info">
+        <h4>${log.recipe_name}</h4>
+        <p>${log.servings} serving${log.servings !== 1 ? 's' : ''} · ${new Date(log.made_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
+      </div>
+      <button class="cook-again-btn" onclick="cookAgain(${log.recipe_id})">Cook Again</button>
+    </div>`).join('');
+}
+
+function renderWeeklyNutrition(logs) {
+  const el = document.getElementById('weekly-nutrition-summary');
+  if (!logs.length) { el.innerHTML = ''; return; }
+  let totCal = 0, totProt = 0, totFibre = 0, totCarbs = 0;
+  logs.forEach(log => {
+    const r = RECIPES.find(x => x.id === log.recipe_id);
+    if (!r) return;
+    const s = log.servings;
+    totCal   += (r.nutrition.calories || 0) * s;
+    totProt  += (r.nutrition.protein  || 0) * s;
+    totFibre += (r.nutrition.fibre    || 0) * s;
+    totCarbs += (r.nutrition.carbs    || 0) * s;
+  });
+  el.innerHTML = `
+    <div class="week-nutrition">
+      <h3>📊 Last 7 days — ${logs.length} meal${logs.length!==1?'s':''} cooked</h3>
+      <div class="wn-grid">
+        <div class="wn-cell"><div class="wn-val">${Math.round(totCal)}</div><div class="wn-lbl">Total kcal</div></div>
+        <div class="wn-cell"><div class="wn-val">${Math.round(totProt)}g</div><div class="wn-lbl">Protein</div></div>
+        <div class="wn-cell"><div class="wn-val">${Math.round(totFibre)}g</div><div class="wn-lbl">Fibre</div></div>
+        <div class="wn-cell"><div class="wn-val">${Math.round(totCarbs)}g</div><div class="wn-lbl">Carbs</div></div>
+      </div>
+    </div>`;
+}
+
+function renderFavouritesSection() {
+  const el = document.getElementById('favourites-section');
+  const favRecipes = RECIPES.filter(r => favourites.includes(r.id));
+  if (!favRecipes.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="fav-section">
+      <div class="section-header"><h3>❤️ My Favourites</h3></div>
+      <div class="fav-grid">
+        ${favRecipes.map(r => `
+          <div class="fav-card" onclick="openRecipe(${r.id})">
+            <div class="fav-emoji" style="background:${r.color}">${r.emoji}</div>
+            <div>
+              <div class="fav-name">${r.name}</div>
+              <div class="fav-tags">${r.tags.slice(0,2).join(' · ')}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+async function cookAgain(recipeId) {
+  const r = RECIPES.find(x => x.id === recipeId);
+  if (!r) return;
+  const inList = shoppingItems.some(s => s.recipe_id === recipeId);
+  if (!inList) {
+    const { data } = await db.from('shopping_list').upsert({
+      user_id: currentUser.id, recipe_id: recipeId, recipe_name: r.name,
+      recipe_emoji: r.emoji, servings: r.servings
+    }, { onConflict: 'user_id,recipe_id' }).select().single();
+    if (data) shoppingItems.push(data);
+    updateCartBadge();
+  }
+  toast(r.emoji + ' Added to shopping list!');
+}
+
+
+// ================================================================
+//  DARK MODE
+// ================================================================
+function toggleDark() {
+  darkMode = !darkMode;
+  document.body.classList.toggle('dark', darkMode);
+  localStorage.setItem('darkMode', darkMode);
+  document.getElementById('dark-btn').textContent = darkMode ? '☀️' : '🌙';
+}
+if (darkMode) document.getElementById('dark-btn').textContent = '☀️';
+
+// ================================================================
+//  SEARCH
+// ================================================================
+function handleSearch(input) {
+  const q = input.value.trim().toLowerCase();
+  document.getElementById('search-clear').style.display = q ? 'block' : 'none';
+  if (!q) { renderGrid(RECIPES); return; }
+  const filtered = RECIPES.filter(r =>
+    r.name.toLowerCase().includes(q) ||
+    r.description.toLowerCase().includes(q) ||
+    r.tags.some(t => t.toLowerCase().includes(q)) ||
+    r.ingredients.some(i => i.item.toLowerCase().includes(q))
+  );
+  renderGrid(filtered);
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').style.display = 'none';
+  renderGrid(RECIPES);
+}
+
+// ================================================================
+//  RECENTLY VIEWED
+// ================================================================
+function renderRecentlyViewed() {
+  const el = document.getElementById('recently-viewed-bar');
+  if (!el) return;
+  const items = recentlyViewed.map(id => RECIPES.find(r => r.id === id)).filter(Boolean);
+  if (!items.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="recently-viewed">
+    <h4>Recently viewed</h4>
+    <div class="rv-scroll">
+      ${items.map(r => `<div class="rv-chip" onclick="openRecipe(${r.id})">${r.emoji} ${r.name}</div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ================================================================
+//  NUTRIENT BADGES
+// ================================================================
+function getNutrientBadges(r) {
+  const n = r.nutrition;
+  const badges = [];
+  if ((n.protein || 0) >= 15)  badges.push({label:'💪 High Protein', cls:''});
+  if ((n.fibre  || 0) >= 6)   badges.push({label:'🌿 High Fibre', cls:''});
+  if ((n.iron   || 0) >= 3.7) badges.push({label:'🩸 Good Iron', cls:'iron'});
+  if ((n.vitC   || 0) >= 10)  badges.push({label:'🍊 Vit C', cls:'vitC'});
+  if ((n.vitD   || 0) >= 2.5) badges.push({label:'☀️ Vit D', cls:'vitD'});
+  if ((n.vitB12 || 0) >= 0.375) badges.push({label:'🧠 Vit B12', cls:'b12'});
+  if ((n.calcium|| 0) >= 175) badges.push({label:'🦴 Calcium', cls:'calcium'});
+  return badges.slice(0, 3);
+}
+
+// ================================================================
+//  FAVOURITES
+// ================================================================
+async function loadFavourites() {
+  const { data } = await db.from('user_favorites').select('recipe_id').eq('user_id', currentUser.id);
+  favourites = (data || []).map(d => d.recipe_id);
+}
+
+async function toggleFavourite(recipeId) {
+  const isFav = favourites.includes(recipeId);
+  if (isFav) {
+    await db.from('user_favorites').delete().eq('user_id', currentUser.id).eq('recipe_id', recipeId);
+    favourites = favourites.filter(id => id !== recipeId);
+    toast('Removed from favourites');
+  } else {
+    await db.from('user_favorites').upsert({ user_id: currentUser.id, recipe_id: recipeId }, { onConflict: 'user_id,recipe_id' });
+    favourites.push(recipeId);
+    toast('❤️ Added to favourites');
+  }
+  renderGrid(RECIPES);
+}
+
+// ================================================================
+//  MEAL PLAN
+// ================================================================
+async function loadMealPlan() {
+  const start = getWeekStart(mealPlanWeekOffset);
+  const end = new Date(start); end.setDate(end.getDate() + 7);
+  const { data } = await db.from('meal_plans').select('*').eq('user_id', currentUser.id)
+    .gte('plan_date', start.toISOString().split('T')[0])
+    .lt('plan_date', end.toISOString().split('T')[0]);
+  mealPlan = {};
+  (data || []).forEach(p => {
+    if (!mealPlan[p.plan_date]) mealPlan[p.plan_date] = [];
+    mealPlan[p.plan_date].push(p);
+  });
+}
+
+function getWeekStart(offset) {
+  const d = new Date();
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + (offset * 7);
+  d.setDate(diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+async function shiftWeek(dir) {
+  mealPlanWeekOffset += dir;
+  await loadMealPlan();
+  renderMealPlanView();
+}
+
+function renderMealPlanView() {
+  const start = getWeekStart(mealPlanWeekOffset);
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const today = new Date().toISOString().split('T')[0];
+
+  const dates = days.map((_, i) => {
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  const startStr = dates[0].toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+  const endStr   = dates[6].toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
+  document.getElementById('week-label').textContent = startStr + ' – ' + endStr;
+
+  const grid = document.getElementById('meal-plan-grid');
+  grid.innerHTML = dates.map((d, i) => {
+    const dateStr = d.toISOString().split('T')[0];
+    const isToday = dateStr === today;
+    const entries = mealPlan[dateStr] || [];
+    return `<div class="day-col${isToday ? ' today' : ''}">
+      <div class="day-label">${days[i]}</div>
+      <div class="day-date">${d.getDate()} ${d.toLocaleDateString('en-GB',{month:'short'})}</div>
+      ${entries.map(p => {
+        const r = RECIPES.find(x => x.id === p.recipe_id);
+        if (!r) return '';
+        return `<div class="plan-recipe-chip">
+          <div class="pc-emoji">${r.emoji}</div>
+          <div class="pc-name">${r.name}</div>
+          <button class="pc-remove" onclick="removePlanEntry('${p.id}','${dateStr}')">✕</button>
+        </div>`;
+      }).join('')}
+      <button class="add-to-day" onclick="openRecipePicker('${dateStr}')">+ Add</button>
+    </div>`;
+  }).join('');
+
+  // Weekly plan summary
+  const allEntries = Object.values(mealPlan).flat();
+  let totCal = 0, totProt = 0, totFibre = 0;
+  allEntries.forEach(p => {
+    const r = RECIPES.find(x => x.id === p.recipe_id);
+    if (r) { totCal += (r.nutrition.calories||0)*p.servings; totProt += (r.nutrition.protein||0)*p.servings; totFibre += (r.nutrition.fibre||0)*p.servings; }
+  });
+  const summaryEl = document.getElementById('plan-weekly-summary');
+  if (allEntries.length) {
+    summaryEl.innerHTML = `<h3 style="font-size:.85rem;font-weight:700;margin-bottom:10px">Week at a glance</h3>
+      <div class="plan-summary-grid">
+        <div class="plan-summary-cell"><div class="psv">${allEntries.length}</div><div class="psl">Meals</div></div>
+        <div class="plan-summary-cell"><div class="psv">${Math.round(totCal)}</div><div class="psl">Total kcal</div></div>
+        <div class="plan-summary-cell"><div class="psv">${Math.round(totProt)}g</div><div class="psl">Protein</div></div>
+        <div class="plan-summary-cell"><div class="psv">${Math.round(totFibre)}g</div><div class="psl">Fibre</div></div>
+      </div>`;
+  } else {
+    summaryEl.innerHTML = '';
+  }
+}
+
+function openRecipePicker(dateStr) {
+  pickerTargetDate = dateStr;
+  const d = new Date(dateStr);
+  document.getElementById('picker-day-label').textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('picker-search').value = '';
+  filterPicker('');
+  document.getElementById('recipe-picker').style.display = 'flex';
+}
+
+function closeRecipePicker() {
+  document.getElementById('recipe-picker').style.display = 'none';
+  pickerTargetDate = null;
+}
+
+function filterPicker(q) {
+  const list = document.getElementById('picker-list');
+  const filtered = q ? RECIPES.filter(r => r.name.toLowerCase().includes(q.toLowerCase())) : RECIPES;
+  list.innerHTML = filtered.map(r => `
+    <div class="picker-recipe" onclick="addToPlan('${pickerTargetDate}',${r.id})">
+      <span class="pr-emoji">${r.emoji}</span>
+      <span class="pr-name">${r.name}</span>
+    </div>`).join('');
+}
+
+async function addToPlan(dateStr, recipeId) {
+  const r = RECIPES.find(x => x.id === recipeId);
+  if (!r) return;
+  const { data } = await db.from('meal_plans').insert({
+    user_id: currentUser.id, plan_date: dateStr, recipe_id: recipeId, servings: r.servings
+  }).select().single();
+  if (data) {
+    if (!mealPlan[dateStr]) mealPlan[dateStr] = [];
+    mealPlan[dateStr].push(data);
+  }
+  closeRecipePicker();
+  renderMealPlanView();
+}
+
+async function removePlanEntry(entryId, dateStr) {
+  await db.from('meal_plans').delete().eq('id', entryId);
+  if (mealPlan[dateStr]) mealPlan[dateStr] = mealPlan[dateStr].filter(p => p.id !== entryId);
+  renderMealPlanView();
+}
+
+async function planToShoppingList() {
+  const allEntries = Object.values(mealPlan).flat();
+  if (!allEntries.length) { toast('No meals in this week's plan'); return; }
+  let added = 0;
+  for (const p of allEntries) {
+    const r = RECIPES.find(x => x.id === p.recipe_id);
+    if (!r) continue;
+    const inList = shoppingItems.some(s => s.recipe_id === r.id);
+    if (!inList) {
+      const { data } = await db.from('shopping_list').upsert({
+        user_id: currentUser.id, recipe_id: r.id, recipe_name: r.name,
+        recipe_emoji: r.emoji, servings: p.servings
+      }, { onConflict: 'user_id,recipe_id' }).select().single();
+      if (data) { shoppingItems.push(data); added++; }
+    }
+  }
+  updateCartBadge();
+  if (added) toast('🛒 ' + added + ' recipe' + (added !== 1 ? 's' : '') + ' added to shopping list');
+  else toast('All meals are already in your shopping list');
+}
+
+// ================================================================
+//  TOAST
+// ================================================================
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
