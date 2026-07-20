@@ -510,7 +510,27 @@
       .meal-plan-grid { grid-template-columns:repeat(2,1fr); }
     }
 
-    </style>
+    
+    /* ---- MOBILE HAMBURGER MENU ---- */
+    .hamburger-btn { display:none;background:none;border:none;cursor:pointer;padding:6px;color:white;font-size:1.3rem;line-height:1; }
+    .mobile-menu { display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:300; }
+    .mobile-menu.open { display:block; }
+    .mobile-menu-drawer { position:absolute;top:0;right:0;width:260px;height:100%;background:white;padding:24px 20px;display:flex;flex-direction:column;gap:4px;box-shadow:-4px 0 24px rgba(0,0,0,.15); }
+    .mobile-menu-header { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px; }
+    .mobile-menu-header span { font-size:1rem;font-weight:800;color:#2e7d32; }
+    .mobile-close-btn { background:none;border:none;font-size:1.4rem;cursor:pointer;color:#888;padding:4px; }
+    .mobile-nav-link { background:none;border:none;text-align:left;padding:14px 16px;border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;color:#333;width:100%;transition:background .15s; }
+    .mobile-nav-link:hover, .mobile-nav-link.active { background:#f0faf0;color:#2e7d32; }
+    .mobile-nav-divider { height:1px;background:#f0f0f0;margin:8px 0; }
+    .mobile-nav-footer { margin-top:auto;display:flex;flex-direction:column;gap:8px; }
+    .mobile-dark-btn { background:#f5f5f5;border:none;border-radius:10px;padding:12px 16px;font-size:0.95rem;font-weight:600;cursor:pointer;text-align:left;width:100%; }
+    .mobile-signout-btn { background:#fff0f0;border:none;border-radius:10px;padding:12px 16px;font-size:0.95rem;font-weight:600;cursor:pointer;color:#e53935;text-align:left;width:100%; }
+    @media (max-width: 600px) {
+      .hamburger-btn { display:block; }
+      .nav-actions .dark-btn, .nav-actions .signout-btn { display:none; }
+    }
+
+  </style>
 </head>
 <body>
 
@@ -577,8 +597,28 @@
       <button class="dark-btn" onclick="toggleDark()" id="dark-btn" title="Toggle dark mode">🌙</button>
       <button class="cart-btn" onclick="toggleShoppingPanel()">🛒 <span id="cart-badge"></span></button>
       <button class="signout-btn" onclick="handleSignOut()">Sign Out</button>
+      <button class="hamburger-btn" onclick="openMobileMenu()" aria-label="Menu">☰</button>
     </div>
   </nav>
+
+  <!-- MOBILE MENU DRAWER -->
+  <div id="mobile-menu" class="mobile-menu" onclick="if(event.target===this)closeMobileMenu()">
+    <div class="mobile-menu-drawer">
+      <div class="mobile-menu-header">
+        <span>🥗 Green Table</span>
+        <button class="mobile-close-btn" onclick="closeMobileMenu()">✕</button>
+      </div>
+      <button class="mobile-nav-link" id="mob-nav-recipes" onclick="mobileNav('home')">🍽 Recipes</button>
+      <button class="mobile-nav-link" id="mob-nav-mealplan" onclick="mobileNav('mealplan')">🗓 Meal Plan</button>
+      <button class="mobile-nav-link" id="mob-nav-profile" onclick="mobileNav('profile')">👤 My Profile</button>
+      <a id="mob-nav-admin" href="admin.html" style="display:none" class="mobile-nav-link" onclick="closeMobileMenu()">⚙️ Admin</a>
+      <div class="mobile-nav-divider"></div>
+      <div class="mobile-nav-footer">
+        <button class="mobile-dark-btn" onclick="toggleDark();updateMobileMenuDark()" id="mob-dark-btn">🌙 Dark Mode</button>
+        <button class="mobile-signout-btn" onclick="handleSignOut()">Sign Out</button>
+      </div>
+    </div>
+  </div>
 
   <!-- HOME -->
   <div id="view-home" class="app-view active">
@@ -2131,6 +2171,40 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
 }
+
+function openMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('open');
+  updateMobileMenuDark();
+  // sync active state
+  const view = document.querySelector('.app-view.active');
+  ['recipes','mealplan','profile'].forEach(id => {
+    const btn = document.getElementById('mob-nav-' + id);
+    if (btn) btn.classList.remove('active');
+  });
+  if (view) {
+    const map = {'view-home':'recipes','view-mealplan':'mealplan','view-profile':'profile'};
+    const mobId = map[view.id];
+    if (mobId) document.getElementById('mob-nav-' + mobId)?.classList.add('active');
+  }
+  // show admin link if admin
+  const adminLink = document.getElementById('mob-nav-admin');
+  if (adminLink) adminLink.style.display = document.getElementById('nav-admin').style.display !== 'none' ? 'block' : 'none';
+}
+
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.remove('open');
+}
+
+function mobileNav(view) {
+  closeMobileMenu();
+  showAppView(view);
+}
+
+function updateMobileMenuDark() {
+  const btn = document.getElementById('mob-dark-btn');
+  if (btn) btn.textContent = darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+}
+
 </script>
 </body>
 </html>
