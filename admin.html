@@ -122,7 +122,12 @@
     .add-row-btn { margin-top: 10px; padding: 7px 14px; border-radius: 8px; border: 1.5px dashed #c8dfc6; background: var(--light); color: var(--green); cursor: pointer; font-size: 0.83rem; font-weight: 600; width: 100%; transition: all 0.15s; }
     .add-row-btn:hover { border-color: var(--green); background: #d8f5d4; }
 
-    .ing-row { display:grid; grid-template-columns: 80px 100px 1fr 36px; gap:8px; align-items:center; margin-bottom:6px; }
+    .ing-row { display:grid; grid-template-columns: 52px 80px 100px 1fr 36px; gap:8px; align-items:center; margin-bottom:6px; }
+    .ing-token-badge {
+      font-family: monospace; font-size: 0.72rem; text-align: center; padding: 6px 4px;
+      background: var(--bg, #f0f0f0); border: 1px dashed #bbb; border-radius: 6px; cursor: pointer; user-select: none;
+    }
+    .ing-token-badge:hover { border-color: #888; }
     .step-row { display:grid; grid-template-columns: 28px 1fr 36px; gap:10px; align-items:flex-start; margin-bottom:8px; }
     .step-num-badge { background: var(--green); color: white; border-radius:50%; width:28px; height:28px; display:flex; align-items:center; justify-content:center; font-size:0.78rem; font-weight:700; flex-shrink:0; margin-top:8px; }
     .health-note-row { background: var(--bg); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
@@ -432,7 +437,8 @@
       <!-- INGREDIENTS -->
       <div class="form-section">
         <div class="form-section-title">Ingredients</div>
-        <div style="display:grid;grid-template-columns:80px 100px 1fr 36px;gap:8px;margin-bottom:6px;padding:0 2px">
+        <div style="display:grid;grid-template-columns:52px 80px 100px 1fr 36px;gap:8px;margin-bottom:6px;padding:0 2px">
+          <span style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase">Ref</span>
           <span style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase">Qty</span>
           <span style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase">Unit</span>
           <span style="font-size:0.72rem;font-weight:700;color:var(--muted);text-transform:uppercase">Ingredient — type to search CoFID database</span>
@@ -450,6 +456,7 @@
       <!-- STEPS -->
       <div class="form-section">
         <div class="form-section-title">Method / Steps</div>
+        <p class="calc-note">Click a <span style="font-family:monospace">{{i0}}</span> ref badge above to copy it, then paste into a step — it'll show that ingredient's live amount and update automatically when someone changes servings.</p>
         <div class="dynamic-section" id="steps-container"></div>
         <button class="add-row-btn" onclick="addStepRow()">+ Add Step</button>
       </div>
@@ -640,6 +647,7 @@ function addIngredientRow(qty='', unit='', item='', per100g=null) {
   row.dataset.per100g = per100g ? JSON.stringify(per100g) : '';
   const hasData = !!per100g;
   row.innerHTML = `
+    <span class="ing-token-badge" title="Click to copy — paste into a step to show this ingredient's live amount" onclick="copyIngredientToken(this)"></span>
     <input type="number" placeholder="Qty" value="${qty !== null && qty !== undefined ? qty : ''}" step="0.01" min="0" data-field="qty" style="width:100%" oninput="onIngredientChange()"/>
     <input type="text" placeholder="g, ml, tbsp..." value="${unit || ''}" data-field="unit" style="width:100%" oninput="onIngredientChange()"/>
     <div class="ing-item-wrap">
@@ -650,10 +658,22 @@ function addIngredientRow(qty='', unit='', item='', per100g=null) {
       <div class="cofid-dropdown"></div>
       ${hasData ? '<span class="cofid-badge">📊 CoFID</span>' : ''}
     </div>
-    <button type="button" class="remove-btn" onclick="this.parentElement.remove(); onIngredientChange()">✕</button>
+    <button type="button" class="remove-btn" onclick="this.parentElement.remove(); onIngredientChange(); renumberIngredientTokens()">✕</button>
   `;
   document.getElementById('ingredients-container').appendChild(row);
   onIngredientChange();
+  renumberIngredientTokens();
+}
+
+function renumberIngredientTokens() {
+  document.querySelectorAll('#ingredients-container .ing-row').forEach((row, i) => {
+    row.querySelector('.ing-token-badge').textContent = `{{i${i}}}`;
+  });
+}
+
+function copyIngredientToken(badge) {
+  const token = badge.textContent;
+  navigator.clipboard.writeText(token).then(() => toast(`Copied ${token} — paste into a step`));
 }
 
 function onIngredientChange() {

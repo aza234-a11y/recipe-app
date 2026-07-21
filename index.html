@@ -186,6 +186,7 @@
       background: var(--green); color: white; border-radius: 50%; min-width: 28px; height: 28px;
       display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.78rem; flex-shrink: 0;
     }
+    .step-amt { font-weight: 700; color: var(--green); }
 
     /* ---- REVIEWS ---- */
     .review-form { background: var(--bg); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
@@ -1439,7 +1440,7 @@ function renderModal() {
 
       <div class="section-title">Method</div>
       <ol class="steps-list">
-        ${r.steps.map((s, i) => `<li><span class="step-num">${i+1}</span><span>${s}</span></li>`).join('')}
+        ${r.steps.map((s, i) => `<li><span class="step-num">${i+1}</span><span>${fmtStep(s, r.ingredients, scale)}</span></li>`).join('')}
       </ol>
 
       ${(() => {
@@ -1508,6 +1509,16 @@ function fmtIng(ing, scale) {
   const attached = ['g','kg','ml','l'];
   if (!ing.unit) return q;
   return attached.includes(ing.unit) ? `${q}${ing.unit}` : `${q} ${ing.unit}`;
+}
+
+// Resolves {{i0}}, {{i1}}, ... tokens in a step's text to that ingredient's
+// current scaled amount, e.g. "Mix {{i0}} with {{i2}}" -> "Mix 200g with 4 tbsp".
+function fmtStep(text, ingredients, scale) {
+  return (text || '').replace(/\{\{i(\d+)\}\}/g, (match, idxStr) => {
+    const ing = ingredients[Number(idxStr)];
+    if (!ing) return match;
+    return `<span class="step-amt">${fmtIng(ing, scale)}</span>`;
+  });
 }
 
 // ================================================================
