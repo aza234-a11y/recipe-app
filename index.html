@@ -598,7 +598,9 @@
     .dn-bar.green  { background:#2e7d32; }
     .dn-bar.amber  { background:#f9a825; }
     .dn-bar.low    { background:#e0e0e0; }
-    .dn-val { font-size:0.58rem;color:#aaa;width:24px;flex-shrink:0; }
+    .dn-bar.over   { background:#c62828; }
+    .dn-val { font-size:0.58rem;color:#aaa;width:28px;flex-shrink:0; }
+    .dn-val.over   { color:#c62828;font-weight:700; }
 
     /* ---- BALANCE SCORE ---- */
     .balance-score { text-align:center;margin-top:6px;padding-top:6px;border-top:1px solid #f0f0f0; }
@@ -885,6 +887,10 @@
     <div class="target-row">
       <label>Carbs</label>
       <div><input type="number" id="t-carbs" min="50" max="600" /><span class="target-unit">g</span></div>
+    </div>
+    <div class="target-row">
+      <label>Fat</label>
+      <div><input type="number" id="t-fat" min="15" max="200" /><span class="target-unit">g</span></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn btn-primary" style="flex:1" onclick="saveTargets()">Save Targets</button>
@@ -1176,7 +1182,8 @@ let pickerTargetSlot = 'dinner';
 const MEAL_SLOTS = ['breakfast','lunch','dinner','snacks'];
 const SLOT_LABELS = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:'Snacks'};
 const SLOT_ICONS  = {breakfast:'🌅',lunch:'☀️',dinner:'🌙',snacks:'🍎'};
-let dailyTargets = JSON.parse(localStorage.getItem('dailyTargets') || 'null') || {cal:2000,protein:80,fibre:25,carbs:250};
+let dailyTargets = JSON.parse(localStorage.getItem('dailyTargets') || 'null') || {cal:2000,protein:80,fibre:25,carbs:250,fat:70};
+if (dailyTargets.fat == null) dailyTargets.fat = 70;
 if (darkMode) document.body.classList.add('dark');
 let authMode = 'signin';
 let openRecipeId = null;
@@ -2108,20 +2115,48 @@ function calcDayNutrition(dateStr) {
   return {cal, protein, fibre, carbs, fat};
 }
 
+const BALANCE_SCORE_MAX = 14; // variety(3) + calories(3) + protein(2) + fibre(2) + carbs(2) + fat(2)
+
+// Points for a nutrient that's good to hit but bad to overshoot (calories, carbs, fat):
+// full marks for reaching 75%+ of target, but marks are lost the further over target you go.
+function scoreWithOveragePenalty(actual, target, maxPoints) {
+  const ratio = actual / target;
+  if (ratio > 1.5) return -Math.round(maxPoints);       // 50%+ over target: penalty
+  if (ratio > 1.2) return -Math.round(maxPoints / 2);   // 20-50% over target: smaller penalty
+  if (ratio >= 0.75) return maxPoints;                  // hit the target range
+  if (ratio >= 0.4) return Math.round(maxPoints / 2);   // partial credit
+  return 0;
+}
+
 function calcBalanceScore(dateStr) {
   const entries = mealPlan[dateStr] || [];
   if (!entries.length) return 0;
   const n = calcDayNutrition(dateStr);
   const slots = new Set(entries.map(e => e.meal_slot));
   let score = 0;
+
+  // Meal variety: up to 3 points, one per distinct meal slot filled
   score += Math.min(3, slots.size);
-  if (Math.abs(n.cal - dailyTargets.cal) / dailyTargets.cal < 0.2) score += 3;
-  else if (n.cal > dailyTargets.cal * 0.5) score += 1;
+
+  // Calories: up to 3 points for landing within 20% of target either way;
+  // penalized the further over target the day goes.
+  const calRatio = n.cal / dailyTargets.cal;
+  if (Math.abs(calRatio - 1) < 0.2) score += 3;
+  else if (calRatio > 1.5) score -= 2;
+  else if (calRatio > 1.2) score -= 1;
+  else if (calRatio > 0.5) score += 1;
+
+  // Protein & fibre: more is rarely a problem, so no overage penalty — just reward hitting target.
   if (n.protein >= dailyTargets.protein * 0.75) score += 2;
   else if (n.protein >= dailyTargets.protein * 0.4) score += 1;
   if (n.fibre >= dailyTargets.fibre * 0.75) score += 2;
   else if (n.fibre >= dailyTargets.fibre * 0.4) score += 1;
-  return Math.min(10, score);
+
+  // Carbs & fat: reward hitting target, penalize significant overshoot.
+  score += scoreWithOveragePenalty(n.carbs, dailyTargets.carbs, 2);
+  score += scoreWithOveragePenalty(n.fat, dailyTargets.fat, 2);
+
+  return Math.max(0, Math.min(BALANCE_SCORE_MAX, score));
 }
 
 function renderNutritionBars(dateStr) {
@@ -2131,14 +2166,18 @@ function renderNutritionBars(dateStr) {
     {lbl:'Cal', val:n.cal,     max:dailyTargets.cal},
     {lbl:'Pro', val:n.protein, max:dailyTargets.protein},
     {lbl:'Fib', val:n.fibre,   max:dailyTargets.fibre},
+    {lbl:'Crb', val:n.carbs,   max:dailyTargets.carbs},
+    {lbl:'Fat', val:n.fat,     max:dailyTargets.fat},
   ];
   return '<div class="day-nutrition">' + bars.map(b => {
-    const pct = Math.min(100, Math.round((b.val/b.max)*100));
-    const cls = pct>=80?'green':pct>=40?'amber':'low';
+    const rawPct = Math.round((b.val/b.max)*100);
+    const over = rawPct > 100;
+    const barPct = Math.min(100, rawPct);
+    const cls = over?'over':rawPct>=80?'green':rawPct>=40?'amber':'low';
     return `<div class="dn-row">
       <span class="dn-lbl">${b.lbl}</span>
-      <div class="dn-bar-wrap"><div class="dn-bar ${cls}" style="width:${pct}%"></div></div>
-      <span class="dn-val">${pct}%</span>
+      <div class="dn-bar-wrap"><div class="dn-bar ${cls}" style="width:${barPct}%"></div></div>
+      <span class="dn-val ${over?'over':''}">${rawPct}%</span>
     </div>`;
   }).join('') + '</div>';
 }
@@ -2147,9 +2186,12 @@ function renderBalanceScore(dateStr) {
   const entries = mealPlan[dateStr] || [];
   if (!entries.length) return '';
   const s = calcBalanceScore(dateStr);
-  const cls = s>=8?'great':s>=5?'ok':'low';
-  const lbl = s>=8?'Great':s>=5?'OK':'Low';
-  return `<div class="balance-score"><span class="bs-ring ${cls}">${s}</span><span class="bs-label">${lbl}</span></div>`;
+  const great = BALANCE_SCORE_MAX * 0.8, ok = BALANCE_SCORE_MAX * 0.5;
+  const cls = s>=great?'great':s>=ok?'ok':'low';
+  const lbl = s>=great?'Great':s>=ok?'OK':'Low';
+  return `<div class="balance-score" title="Balance score: ${s}/${BALANCE_SCORE_MAX}">
+    <span class="bs-ring ${cls}">${s}</span><span class="bs-label">${lbl}</span>
+  </div>`;
 }
 
 function renderMealPlanView() {
@@ -2349,6 +2391,7 @@ function openTargetsModal() {
   document.getElementById('t-protein').value = dailyTargets.protein;
   document.getElementById('t-fibre').value   = dailyTargets.fibre;
   document.getElementById('t-carbs').value   = dailyTargets.carbs;
+  document.getElementById('t-fat').value     = dailyTargets.fat;
   document.getElementById('targets-overlay').style.display = 'flex';
 }
 
@@ -2362,6 +2405,7 @@ function saveTargets() {
     protein: parseInt(document.getElementById('t-protein').value) || 80,
     fibre:   parseInt(document.getElementById('t-fibre').value)   || 25,
     carbs:   parseInt(document.getElementById('t-carbs').value)   || 250,
+    fat:     parseInt(document.getElementById('t-fat').value)     || 70,
   };
   localStorage.setItem('dailyTargets', JSON.stringify(dailyTargets));
   closeTargetsModal();
