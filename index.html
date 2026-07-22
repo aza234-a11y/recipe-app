@@ -292,6 +292,17 @@
     .profile-sub { font-size: 0.87rem; color: var(--muted); margin-top: 2px; }
     .section-header { display: flex; align-items: center; margin-bottom: 16px; }
     .section-header h3 { font-size: 1.1rem; font-weight: 700; }
+
+    /* ---- PROFILE DETAILS (personalized targets) ---- */
+    .profile-details { background: var(--bg); border-radius: 14px; padding: 18px; margin-bottom: 28px; }
+    .profile-details-note { font-size: 0.8rem; color: var(--muted); margin-bottom: 14px; line-height: 1.4; }
+    .pd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; }
+    .pd-grid select {
+      width: 100%; padding: 7px 10px; border: 1.5px solid #ddd; border-radius: 8px;
+      font-size: 0.85rem; outline: none; font-family: inherit; background: white;
+    }
+    .pd-grid select:focus { border-color: var(--green); }
+    @media(max-width:520px) { .pd-grid { grid-template-columns: 1fr; } }
     .meal-log-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
     .meal-log-card {
       background: white; border-radius: 12px; padding: 14px 16px;
@@ -828,6 +839,31 @@
           <div class="profile-sub" id="profile-email"></div>
         </div>
       </div>
+
+      <div class="section-header"><h3>🧬 Your Details</h3></div>
+      <div class="profile-details">
+        <p class="profile-details-note">Used to calculate personalized daily nutrition targets. Nothing here is shown to other users.</p>
+        <div class="pd-grid">
+          <div class="target-row"><label>Age</label><div><input type="number" id="pd-age" min="10" max="120" /><span class="target-unit">yrs</span></div></div>
+          <div class="target-row"><label>Sex</label><div><select id="pd-sex" title="Only used for the calorie formula (Mifflin-St Jeor)"><option value="">—</option><option value="female">Female</option><option value="male">Male</option></select></div></div>
+          <div class="target-row"><label>Weight</label><div><input type="number" id="pd-weight" min="30" max="300" step="0.1" /><span class="target-unit">kg</span></div></div>
+          <div class="target-row"><label>Height</label><div><input type="number" id="pd-height" min="100" max="250" /><span class="target-unit">cm</span></div></div>
+          <div class="target-row"><label>Activity level</label><div><select id="pd-activity">
+            <option value="sedentary">Sedentary (little/no exercise)</option>
+            <option value="light">Light (1-3 days/week)</option>
+            <option value="moderate">Moderate (3-5 days/week)</option>
+            <option value="active">Active (6-7 days/week)</option>
+            <option value="very_active">Very active (physical job/2x day)</option>
+          </select></div></div>
+          <div class="target-row"><label>Goal</label><div><select id="pd-goal">
+            <option value="maintain">Maintain weight</option>
+            <option value="lose">Lose weight</option>
+            <option value="gain">Gain weight</option>
+          </select></div></div>
+        </div>
+        <button class="btn btn-green" style="width:100%;margin-top:6px" onclick="saveProfileDetails()">Save & Calculate My Targets</button>
+      </div>
+
       <div id="weekly-nutrition-summary"></div>
       <div id="favourites-section"></div>
       <div class="section-header"><h3>🍽 Meals I've Made</h3></div>
@@ -884,6 +920,7 @@
   <div class="targets-box">
     <h3>🎯 Daily Nutrition Targets</h3>
     <p>Used to measure how well your meal plan hits your goals each day.</p>
+    <button class="btn btn-outline" id="use-calculated-btn" style="width:100%;margin-bottom:14px" onclick="applyCalculatedTargets()">🧮 Use my calculated targets</button>
     <div class="target-row">
       <label>Calories</label>
       <div><input type="number" id="t-cal" min="800" max="5000" /><span class="target-unit">kcal</span></div>
@@ -1201,6 +1238,26 @@ const SLOT_LABELS = {breakfast:'Breakfast',lunch:'Lunch',dinner:'Dinner',snacks:
 const SLOT_ICONS  = {breakfast:'🌅',lunch:'☀️',dinner:'🌙',snacks:'🍎'};
 let dailyTargets = JSON.parse(localStorage.getItem('dailyTargets') || 'null') || {cal:2000,protein:80,fibre:25,carbs:250,fat:70};
 if (dailyTargets.fat == null) dailyTargets.fat = 70;
+let myProfile = null; // profiles row for the signed-in user: age/sex/weight_kg/height_cm/activity_level/goal/daily_targets
+
+const ACTIVITY_MULTIPLIERS = { sedentary:1.2, light:1.375, moderate:1.55, active:1.725, very_active:1.9 };
+
+// Mifflin-St Jeor calorie estimate + standard macro split, from a person's stats.
+function calcPersonalizedTargets({ age, sex, weightKg, heightCm, activityLevel, goal }) {
+  const bmr = sex === 'male'
+    ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
+    : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  const tdee = bmr * (ACTIVITY_MULTIPLIERS[activityLevel] || 1.2);
+  let cal = goal === 'lose' ? tdee - 500 : goal === 'gain' ? tdee + 400 : tdee;
+  cal = Math.max(1200, Math.round(cal));
+
+  const protein = Math.round(1.6 * weightKg);
+  const fat = Math.round((cal * 0.3) / 9);
+  const carbs = Math.max(0, Math.round((cal - protein * 4 - fat * 9) / 4));
+  const fibre = Math.max(20, Math.round((cal / 1000) * 14));
+
+  return { cal, protein, fibre, carbs, fat };
+}
 if (darkMode) document.body.classList.add('dark');
 let authMode = 'signin';
 let openRecipeId = null;
@@ -1235,9 +1292,16 @@ db.auth.onAuthStateChange(async (event, session) => {
     renderGrid(RECIPES);
     renderRecentlyViewed();
     showAppView('home');
-    // Show admin link if user is admin
-    const { data: profile } = await db.from('profiles').select('is_admin').eq('id', currentUser.id).single();
+    // Show admin link if user is admin; also pick up personal details + synced targets
+    const { data: profile } = await db.from('profiles')
+      .select('is_admin, age, sex, weight_kg, height_cm, activity_level, goal, daily_targets')
+      .eq('id', currentUser.id).single();
     if (profile?.is_admin) document.getElementById('nav-admin').style.display = 'inline-block';
+    myProfile = profile || null;
+    if (profile?.daily_targets) {
+      dailyTargets = profile.daily_targets;
+      localStorage.setItem('dailyTargets', JSON.stringify(dailyTargets));
+    }
   } else {
     currentUser = null;
     document.getElementById('view-auth').style.display = 'flex';
@@ -1909,6 +1973,8 @@ async function loadProfile() {
   document.getElementById('profile-email').textContent = currentUser.email;
   document.getElementById('profile-avatar').textContent = name.charAt(0).toUpperCase();
 
+  loadProfileDetails();
+
   // Weekly nutrition summary
   const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const { data: logs } = await db.from('meal_logs').select('*').eq('user_id', currentUser.id)
@@ -1935,6 +2001,66 @@ async function loadProfile() {
       </div>
       <button class="cook-again-btn" onclick="cookAgain(${log.recipe_id})">Cook Again</button>
     </div>`).join('');
+}
+
+function loadProfileDetails() {
+  const p = myProfile || {};
+  document.getElementById('pd-age').value      = p.age ?? '';
+  document.getElementById('pd-sex').value      = p.sex || '';
+  document.getElementById('pd-weight').value   = p.weight_kg ?? '';
+  document.getElementById('pd-height').value   = p.height_cm ?? '';
+  document.getElementById('pd-activity').value = p.activity_level || 'moderate';
+  document.getElementById('pd-goal').value     = p.goal || 'maintain';
+}
+
+// Field names match the `profiles` table columns directly, so this object
+// can be used as-is both for the DB update and (via toCalcInput) for the calculator.
+function readProfileDetailsForm() {
+  return {
+    age: parseInt(document.getElementById('pd-age').value) || null,
+    sex: document.getElementById('pd-sex').value || null,
+    weight_kg: parseFloat(document.getElementById('pd-weight').value) || null,
+    height_cm: parseFloat(document.getElementById('pd-height').value) || null,
+    activity_level: document.getElementById('pd-activity').value,
+    goal: document.getElementById('pd-goal').value
+  };
+}
+
+function toCalcInput(p) {
+  return { age: p.age, sex: p.sex, weightKg: p.weight_kg, heightCm: p.height_cm, activityLevel: p.activity_level, goal: p.goal };
+}
+
+async function saveProfileDetails() {
+  const details = readProfileDetailsForm();
+  const { error } = await db.from('profiles').update(details).eq('id', currentUser.id);
+  if (error) { toast('Could not save your details — try again'); return; }
+  myProfile = { ...(myProfile || {}), ...details };
+
+  if (details.age && details.sex && details.weight_kg && details.height_cm) {
+    dailyTargets = calcPersonalizedTargets(toCalcInput(details));
+    localStorage.setItem('dailyTargets', JSON.stringify(dailyTargets));
+    myProfile.daily_targets = dailyTargets;
+    db.from('profiles').update({ daily_targets: dailyTargets }).eq('id', currentUser.id)
+      .then(({ error: syncErr }) => { if (syncErr) console.warn('Could not sync targets:', syncErr); });
+    toast('✓ Details saved — targets recalculated');
+  } else {
+    toast('✓ Details saved — fill in all fields to calculate targets');
+  }
+}
+
+function applyCalculatedTargets() {
+  const p = myProfile;
+  if (!p || !p.age || !p.sex || !p.weight_kg || !p.height_cm) {
+    toast('Add your age, sex, weight and height on your Profile page first');
+    return;
+  }
+  const t = calcPersonalizedTargets(toCalcInput(p));
+  document.getElementById('t-cal').value     = t.cal;
+  document.getElementById('t-protein').value = t.protein;
+  document.getElementById('t-fibre').value   = t.fibre;
+  document.getElementById('t-carbs').value   = t.carbs;
+  document.getElementById('t-fat').value     = t.fat;
+  toast('Calculated targets loaded — review and Save');
 }
 
 function renderWeeklyNutrition(logs) {
@@ -2477,6 +2603,11 @@ function saveTargets() {
     fat:     parseInt(document.getElementById('t-fat').value)     || 70,
   };
   localStorage.setItem('dailyTargets', JSON.stringify(dailyTargets));
+  if (currentUser) {
+    if (myProfile) myProfile.daily_targets = dailyTargets;
+    db.from('profiles').update({ daily_targets: dailyTargets }).eq('id', currentUser.id)
+      .then(({ error }) => { if (error) console.warn('Could not sync targets:', error); });
+  }
   closeTargetsModal();
   renderMealPlanView();
   toast('✓ Targets saved');
